@@ -10,6 +10,7 @@ type ResponseHandler interface {
 	InviteUser(userID, channelID string) bool
 	KickUser(userID, channelID string) bool
 	DeleteMessage(channelID, timestamp string) bool
+	ReplaceMessagePlaceholders(event Event, message string) string
 }
 
 type Response interface {
@@ -23,7 +24,8 @@ type MessageChannelResponse struct {
 
 func (k MessageChannelResponse) Execute(h ResponseHandler, event Event) bool {
 	log.Printf("[+] Executing 'MessageChannelResponse'")
-	return h.MessagePublic(event.ChannelID, k.Message)
+	message := h.ReplaceMessagePlaceholders(event, k.Message)
+	return h.MessagePublic(event.ChannelID, message)
 }
 
 type MessageUserResponse struct {
@@ -41,8 +43,8 @@ func (k MessageUserResponse) Execute(h ResponseHandler, event Event) bool {
 	} else {
 		userID = k.UserID
 	}
-
-	return h.MessageUser(userID, k.Message)
+	message := h.ReplaceMessagePlaceholders(event, k.Message)
+	return h.MessageUser(userID, message)
 }
 
 type InviteUserResponse struct {

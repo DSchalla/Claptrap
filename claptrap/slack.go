@@ -4,6 +4,7 @@ import (
 	"github.com/nlopes/slack"
 	"log"
 	"strings"
+	"github.com/DSchalla/Claptrap/rules"
 )
 
 func NewSlackHandler(botToken, adminToken string) *SlackHandler {
@@ -95,4 +96,12 @@ func (s SlackResponseHandler) DeleteMessage(channelID, timestamp string) bool {
 	}
 
 	return true
+}
+
+func (s SlackResponseHandler) ReplaceMessagePlaceholders(event rules.Event, message string) string {
+	botInfo := s.botRTM.GetInfo()
+	message = strings.Replace(message, "{Sender_Name}", "<@" + event.UserID + ">", 1)
+	message = strings.Replace(message, "{Bot_Name}", "<@" + botInfo.User.ID + ">", 1)
+	message = strings.Replace(message, "{Channel_Name}", event.ChannelName, 1)
+	return message
 }
