@@ -1,11 +1,50 @@
 [
   {
-    "name": "Debug Message",
+    "name": "Greeting Message",
     "conditions": [
-      {"type": "user_is_role", "condition": "admin"}
+      {"type": "text_equals", "condition": "Hello CL4P-TP"}
     ],
     "responses": [
-      {"action": "message_channel", "message": "Hello World"}
+      {"action": "message_channel", "message": "Hello, {Sender_Name}! My name is {Bot_Name}, created by <@U4GU2V4RH>."}
+    ]
+  },
+  {
+    "name": "Greeting",
+    "conditions": [
+      {"type": "text_equals", "condition": "Say Hello Claptrap"}
+    ],
+    "responses": [
+      {"action": "message_channel", "message": "Well hello there, welcome to *NetSecFocus!*\nHave a look through the guidelines: https://netsecfocus.com/netsec-focus-guidelines/\nTo save clogging up chat with autoresponses go to your Direct Messages to yourself (left-hand side, Direct Messages, $user (you) and you can try the following: !oscpinvite !rules, !learn and a myriad of other responses. Enjoy."}
+    ]
+  },
+  {
+    "name": "OSCP Invite",
+    "conditions": [
+      {"type": "text_equals", "condition": "!oscpinvite"}
+    ],
+    "responses": [
+      {"action": "message_user", "message": "*OSCP Invite:*\nIn order to be invited, direct message {Bot_Name} a exact copy of the following sentence:\n> I confirm I am enrolled into the PWK course or passed my OSCP exam.\n _*NOTICE:* We're not affiliated with offsec, this is strictly a community effort._"},
+      {"action": "delete_message"}
+    ]
+  },
+  {
+    "name": "Invite to OSCP",
+    "conditions": [
+      {"type": "text_equals", "condition": "I confirm I am enrolled into the PWK course or passed my OSCP exam."},
+      {"type": "channel_is_type", "condition": "dm"}
+    ],
+    "responses": [
+      {"action": "message_user", "message": "You were invited to the OSCP group. Please note the following rules:\n*1.* No spoilers \n*2.* No irrelevant discussions/offtopic chatter (okay in threads) \n*3.* Research before asking (http://www.catb.org/esr/faqs/smart-questions.html#before) \n*4.* NO DIRECT QUESTIONS ON MACHINES \n*5.* No shitposting/memes \n*6.* Try harder \n*7.* Don't add members to the channel, instead ask an admin.\n *NOTE:* People blatantly ignoring the rules will either get warned or kicked out from the channel."},
+      {"action": "invite_user", "channel": "G2A64P02W"}
+    ]
+  },
+  {
+    "name": "Delete Troll Messages",
+    "conditions": [
+      {"type": "user_equals", "condition": "IDK"}
+    ],
+    "responses": [
+      {"action": "delete_message"}
     ]
   }
 ]
