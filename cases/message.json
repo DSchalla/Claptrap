@@ -1,0 +1,11 @@
+[
+  {
+    "name": "Debug Message",
+    "conditions": [
+      {"type": "user_is_role", "condition": "admin"}
+    ],
+    "responses": [
+      {"action": "message_channel", "message": "Hello World"}
+    ]
+  }
+]

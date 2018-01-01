@@ -1,0 +1,14 @@
+[
+  {
+    "name": "Autokick Non-Admin Invite OSCP",
+    "conditions": [
+      {"type": "from_channel_id", "condition": "G2A64P02W"},
+      {"type": "invited_by_user"}
+    ],
+    "responses": [
+      {"action": "kick_user"},
+      {"action": "message_user", "user": "{INVITER_ID}", "message": "Please note that users should only be invited by admins to the OSCP channel."},
+      {"action": "message_user", "user": "{USER_ID}", "message": "Please follow the process for the invitation to the OSCP Channel.\nOpen a DM dialog to yourself and write !oscpinvite for instructions."}
+    ]
+  }
+]
