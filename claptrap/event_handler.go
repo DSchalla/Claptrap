@@ -1,7 +1,6 @@
 package claptrap
 
 import (
-	"fmt"
 	"github.com/DSchalla/Claptrap/rules"
 	"github.com/nlopes/slack"
 	"log"
@@ -36,6 +35,12 @@ func (eh *EventHandler) Start() {
 }
 
 func (eh *EventHandler) handleMessageEvent(event *slack.MessageEvent) {
+
+	if event.User == "" {
+		//ToDo: Specify Subtypes to return early
+		return
+	}
+
 	unifiedEvent := rules.Event{}
 	unifiedEvent.Type = "message"
 	unifiedEvent.UserID = event.User
@@ -51,7 +56,7 @@ func (eh *EventHandler) addEventMetadata(event rules.Event) rules.Event {
 
 	user, err := eh.rtm.GetUserInfo(event.UserID)
 	if err != nil {
-		fmt.Errorf("error occured fetching username: %s", err)
+		log.Printf("[!] error occured fetching username: %s\n", err)
 		userName = ""
 		userRole = ""
 	} else {
@@ -68,7 +73,7 @@ func (eh *EventHandler) addEventMetadata(event rules.Event) rules.Event {
 	if strings.HasPrefix(event.ChannelID, "C") {
 		channel, err := eh.rtm.GetChannelInfo(event.ChannelID)
 		if err != nil {
-			fmt.Errorf("error occured fetching channel info: %s", err)
+			log.Printf("[!] error occured fetching channel info: %s\n", err)
 			channelName = ""
 		} else {
 			channelName = channel.Name
@@ -76,7 +81,7 @@ func (eh *EventHandler) addEventMetadata(event rules.Event) rules.Event {
 	} else if strings.HasPrefix(event.ChannelID, "G") {
 		group, err := eh.rtm.GetGroupInfo(event.ChannelID)
 		if err != nil {
-			fmt.Errorf("error occured fetching group info: %s", err)
+			log.Printf("[!] error occured fetching group info: %s\n", err)
 			channelName = ""
 		} else {
 			channelName = group.Name
@@ -90,7 +95,7 @@ func (eh *EventHandler) addEventMetadata(event rules.Event) rules.Event {
 	if event.InviterID != "" {
 		inviter, err := eh.rtm.GetUserInfo(event.InviterID)
 		if err != nil {
-			fmt.Errorf("error occured fetching username: %s", err)
+			log.Printf("[!] error occured fetching username: %s\n", err)
 			inviterName = ""
 			inviterRole = ""
 		} else {

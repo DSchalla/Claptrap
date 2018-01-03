@@ -53,7 +53,6 @@ type InviteUserResponse struct {
 }
 
 func (k InviteUserResponse) Execute(h ResponseHandler, event Event) bool {
-	log.Printf("[+] Executing 'InviteUserResponse'")
 
 	userID := ""
 
@@ -63,7 +62,8 @@ func (k InviteUserResponse) Execute(h ResponseHandler, event Event) bool {
 		userID = k.UserID
 	}
 
-	return h.InviteUser(event.ChannelID, userID)
+	log.Printf("[+] Executing 'InviteUserResponse' with ChannelID: %s and UserID: %s", k.ChannelID, userID)
+	return h.InviteUser(userID, k.ChannelID)
 }
 
 type KickUserResponse struct {

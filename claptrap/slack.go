@@ -46,6 +46,7 @@ func (s SlackResponseHandler) MessagePublic(channelID, message string) bool {
 	_, _, err := s.botRTM.PostMessage(channelID, message, params)
 
 	if err != nil {
+		log.Println("[!] Response from API Endpoint:", err)
 		return false
 	}
 
@@ -66,6 +67,7 @@ func (s SlackResponseHandler) InviteUser(userID, channelID string) bool {
 	}
 
 	if err != nil {
+		log.Println("[!] Response from API Endpoint:", err)
 		return false
 	}
 
@@ -82,6 +84,7 @@ func (s SlackResponseHandler) KickUser(userID, channelID string) bool {
 	}
 
 	if err != nil {
+		log.Println("[!] Response from API Endpoint:", err)
 		return false
 	}
 
@@ -92,6 +95,7 @@ func (s SlackResponseHandler) DeleteMessage(channelID, timestamp string) bool {
 	_, _, err := s.adminAPI.DeleteMessage(channelID, timestamp)
 
 	if err != nil {
+		log.Println("[!] Response from API Endpoint:", err)
 		return false
 	}
 
