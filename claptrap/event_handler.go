@@ -41,6 +41,11 @@ func (eh *EventHandler) handleMessageEvent(event *slack.MessageEvent) {
 		return
 	}
 
+	if event.User == eh.rtm.GetInfo().User.ID {
+		// Ignore messages posted by the Bot itself
+		return
+	}
+
 	unifiedEvent := rules.Event{}
 	unifiedEvent.Type = "message"
 	unifiedEvent.UserID = event.User

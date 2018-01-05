@@ -2,11 +2,7 @@ package claptrap
 
 import (
 	"github.com/DSchalla/Claptrap/rules"
-	"github.com/fsnotify/fsnotify"
 	"log"
-	"os"
-	"path"
-	"strings"
 )
 
 type BotServer struct {
@@ -14,19 +10,13 @@ type BotServer struct {
 	slackHandler *SlackHandler
 	eventHandler *EventHandler
 	ruleEngine   *rules.Engine
-	caseWatcher  *fsnotify.Watcher
 }
 
 func NewBotServer(config Config) *BotServer {
-	var err error
 	b := BotServer{}
 	b.config = config
 	b.slackHandler = NewSlackHandler(config.BotToken, config.AdminToken)
 	b.ruleEngine = rules.NewEngine(b.config.CaseDir)
-	b.caseWatcher, err = fsnotify.NewWatcher()
-	if err != nil {
-		log.Println("[!] Unable to Create File Watcher")
-	}
 	return &b
 }
 
@@ -38,4 +28,9 @@ func (b *BotServer) Start() {
 	b.ruleEngine.SetResponseHandler(respHandler)
 	b.ruleEngine.Start()
 	b.eventHandler.Start()
+}
+
+func (b *BotServer) AddCase(caseType string, newCase rules.Case) {
+	b.ruleEngine.AddCase(caseType, newCase)
+	log.Printf("[+] Dynamic Case '%s' with type '%s' loaded\n", newCase.Name, caseType)
 }

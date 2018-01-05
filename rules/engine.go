@@ -2,7 +2,6 @@ package rules
 
 import (
 	"github.com/fsnotify/fsnotify"
-	"golang.org/x/tools/go/gcimporter15/testdata"
 	"log"
 	"os"
 	"path"
@@ -21,11 +20,16 @@ type Engine struct {
 }
 
 func NewEngine(caseDir string) *Engine {
+	var err error
 	e := &Engine{}
 	e.caseFiles = make(map[string][]Case)
 	e.caseDynamic = make(map[string][]Case)
 	e.caseCombined = make(map[string][]Case)
 	e.caseDir = caseDir
+	e.caseWatcher, err = fsnotify.NewWatcher()
+	if err != nil {
+		log.Println("[!] Unable to Create File Watcher")
+	}
 	return e
 }
 
@@ -38,8 +42,8 @@ func (e *Engine) SetResponseHandler(handler ResponseHandler) {
 	e.responseHandler = handler
 }
 
-func (e *Engine) AddCase(caseType string, cases []Case) {
-	e.caseFiles[caseType] = cases
+func (e *Engine) AddCase(caseType string, newCase Case) {
+	e.caseDynamic[caseType] = append(e.caseDynamic[caseType], newCase)
 	e.combineCaseMap()
 }
 

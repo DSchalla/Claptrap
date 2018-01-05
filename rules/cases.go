@@ -51,7 +51,7 @@ func loadCasesFromFile(filepath string) []Case {
 
 	return cases
 }
-func createCaseFromRawCase(r rawCase) rules.Case {
+func createCaseFromRawCase(r rawCase) Case {
 	parsedCase := Case{}
 	parsedCase.Name = r.Name
 	parsedConditions := make([]Condition, len(r.Conditions))
