@@ -49,7 +49,7 @@ func (b *BotServer) ReloadCases() {
 	}
 }
 
-func (b *BotServer) ReloadCase (caseType string) bool{
+func (b *BotServer) ReloadCase(caseType string) bool {
 	valid := false
 	for _, validType := range caseTypes {
 		if validType == caseType {
@@ -84,7 +84,7 @@ func (b *BotServer) startCaseWatcher() {
 			if !strings.HasSuffix(event.Name, ".json") {
 				continue
 			}
-			if event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Create == fsnotify.Create{
+			if event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Create == fsnotify.Create {
 				log.Println("[+] Case Config modified:", event.Name)
 				caseType := strings.Replace(event.Name, ".json", "", 1)
 				caseType = strings.Replace(caseType, b.config.CaseDir, "", 1)
