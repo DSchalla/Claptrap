@@ -26,6 +26,35 @@ func (h *SlackHandler) StartRTM() *slack.RTM {
 	return rtm
 }
 
+func (h *SlackHandler) AutoJoinAllChannel(botID string) {
+	channels, err := h.AdminAPI.GetChannels(true)
+
+	if err != nil {
+		log.Println("[!] Error getting channel list: ", err)
+	}
+
+	for _, channel := range channels {
+
+		if channel.IsMember {
+			continue
+		}
+
+		log.Printf("[+] Attempting to Join Channel '%s' (%s) as Admin\n", channel.Name, channel.ID)
+		_, err := h.AdminAPI.JoinChannel(channel.Name)
+
+		if err != nil {
+			log.Println("[!] Error joining channel as admin:", err)
+		}
+
+		log.Printf("[+] Attempting to Invite Bot to Channel '%s' (%s)\n", channel.Name, channel.ID)
+		_, err = h.AdminAPI.InviteUserToChannel(channel.ID, botID)
+
+		if err != nil {
+			log.Println("[!] Error inviting bot to channel as admin:", err)
+		}
+	}
+}
+
 func NewSlackResponseHandler(rtm *slack.RTM, adminAPI *slack.Client) *SlackResponseHandler {
 	handler := SlackResponseHandler{
 		botRTM:   rtm,

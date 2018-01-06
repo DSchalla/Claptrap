@@ -23,9 +23,16 @@ type MessageChannelResponse struct {
 }
 
 func (k MessageChannelResponse) Execute(h ResponseHandler, event Event) bool {
-	log.Printf("[+] Executing 'MessageChannelResponse'")
 	message := h.ReplaceMessagePlaceholders(event, k.Message)
-	return h.MessagePublic(event.ChannelID, message)
+	channelID := ""
+	if len(k.ChannelID) == 0{
+		channelID = event.ChannelID
+	} else {
+		channelID = k.ChannelID
+	}
+
+	log.Printf("[+] Executing 'MessageChannelResponse' | ChannelID: %s \n", channelID)
+	return h.MessagePublic(channelID, message)
 }
 
 type MessageUserResponse struct {
@@ -34,8 +41,6 @@ type MessageUserResponse struct {
 }
 
 func (k MessageUserResponse) Execute(h ResponseHandler, event Event) bool {
-	log.Printf("[+] Executing 'MessageUserResponse'")
-
 	userID := ""
 
 	if k.UserID == "" {
@@ -44,6 +49,9 @@ func (k MessageUserResponse) Execute(h ResponseHandler, event Event) bool {
 		userID = k.UserID
 	}
 	message := h.ReplaceMessagePlaceholders(event, k.Message)
+
+	log.Printf("[+] Executing 'MessageUserResponse' | UserID: %s \n", userID)
+
 	return h.MessageUser(userID, message)
 }
 
@@ -62,7 +70,7 @@ func (k InviteUserResponse) Execute(h ResponseHandler, event Event) bool {
 		userID = k.UserID
 	}
 
-	log.Printf("[+] Executing 'InviteUserResponse' with ChannelID: %s and UserID: %s", k.ChannelID, userID)
+	log.Printf("[+] Executing 'InviteUserResponse' | ChannelID: %s | UserID: %s", k.ChannelID, userID)
 	return h.InviteUser(userID, k.ChannelID)
 }
 
@@ -72,8 +80,6 @@ type KickUserResponse struct {
 }
 
 func (k KickUserResponse) Execute(h ResponseHandler, event Event) bool {
-	log.Printf("[+] Executing 'KickUserResponse'")
-
 	userID := ""
 
 	if k.UserID == "" {
@@ -82,13 +88,21 @@ func (k KickUserResponse) Execute(h ResponseHandler, event Event) bool {
 		userID = k.UserID
 	}
 
-	return h.KickUser(userID, event.ChannelID)
+	channelID := ""
+	if len(k.ChannelID) == 0{
+		channelID = event.ChannelID
+	} else {
+		channelID = k.ChannelID
+	}
+
+	log.Printf("[+] Executing 'KickUserResponse' | ChannelID: %s | UserID: %s", channelID, userID)
+	return h.KickUser(userID, channelID)
 }
 
 type DeleteMessageResponse struct {
 }
 
 func (d DeleteMessageResponse) Execute(h ResponseHandler, event Event) bool {
-	log.Printf("[+] Executing 'DeleteMessage'")
+	log.Printf("[+] Executing 'DeleteMessage' | ChannelID: %s | Timestamp: %s", event.ChannelID, event.Timestamp)
 	return h.DeleteMessage(event.ChannelID, event.Timestamp)
 }
