@@ -6,20 +6,18 @@ import (
 )
 
 func TestEngine_EvaluateMessageEvent(t *testing.T) {
-	cases := []rules.Case{
-		{
-			Name: "Example Case",
-			Conditions: []rules.Condition{
-				rules.TextContainsCondition{
-					Condition: "abc",
-				},
+	testCase := rules.Case{
+		Name: "Example Case",
+		Conditions: []rules.Condition{
+			rules.TextContainsCondition{
+				Condition: "abc",
 			},
-			Responses: nil,
 		},
+		Responses: nil,
 	}
 
-	e := rules.NewEngine()
-	e.LoadCases("message", cases)
+	e := rules.NewEngine("")
+	e.AddCase("message", testCase)
 
 	event := rules.Event{
 		UserID:      "UABCDEF",

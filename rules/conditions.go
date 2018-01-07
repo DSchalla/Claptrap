@@ -26,6 +26,14 @@ func (t TextEqualsCondition) Test(event Event) bool {
 	return event.Text == t.Condition
 }
 
+type TextStartsWithCondition struct {
+	Condition string
+}
+
+func (t TextStartsWithCondition) Test(event Event) bool {
+	return strings.HasPrefix(event.Text, t.Condition)
+}
+
 type RandomCondition struct {
 	Likeness int
 }

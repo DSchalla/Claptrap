@@ -79,6 +79,8 @@ func createConditionFromRawCondition(rawCond rawCondition) Condition {
 		realCondition = TextContainsCondition{Condition: rawCond.Condition}
 	case "text_equals":
 		realCondition = TextEqualsCondition{Condition: rawCond.Condition}
+	case "text_starts_with":
+		realCondition = TextStartsWithCondition{Condition: rawCond.Condition}
 	case "user_equals":
 		realCondition = UserEqualsCondition{Condition: rawCond.Condition, Parameter: rawCond.Parameter}
 	case "user_is_role":

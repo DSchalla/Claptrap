@@ -32,6 +32,20 @@ func TestTextEqualsCondition(t *testing.T) {
 	}
 }
 
+func TestTextStartsWithCondition(t *testing.T) {
+	cond := rules.TextStartsWithCondition{
+		Condition: "Foobar",
+	}
+
+	if !cond.Test(rules.Event{Text: "Foobar abc"}) {
+		t.Errorf("Expected True, got False")
+	}
+
+	if cond.Test(rules.Event{Text: "abc Foobar"}) {
+		t.Errorf("Expected False, got True")
+	}
+}
+
 func TestUserEqualsCondition_Test(t *testing.T) {
 	cond := rules.UserEqualsCondition{
 		Condition: "foobar",
