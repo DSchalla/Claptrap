@@ -57,22 +57,22 @@ func (h *SlackHandler) AutoJoinAllChannel(botID string) {
 
 func NewSlackResponseHandler(rtm *slack.RTM, adminAPI *slack.Client) *SlackResponseHandler {
 	handler := SlackResponseHandler{
-		botRTM:   rtm,
-		adminAPI: adminAPI,
+		BotRTM:   rtm,
+		AdminAPI: adminAPI,
 	}
 	return &handler
 }
 
 type SlackResponseHandler struct {
-	botRTM   *slack.RTM
-	adminAPI *slack.Client
+	BotRTM   *slack.RTM
+	AdminAPI *slack.Client
 }
 
 func (s SlackResponseHandler) MessagePublic(channelID, message string) bool {
 	params := slack.PostMessageParameters{
 		AsUser: true,
 	}
-	_, _, err := s.botRTM.PostMessage(channelID, message, params)
+	_, _, err := s.BotRTM.PostMessage(channelID, message, params)
 
 	if err != nil {
 		log.Println("[!] Response from API Endpoint:", err)
@@ -90,9 +90,9 @@ func (s SlackResponseHandler) InviteUser(userID, channelID string) bool {
 	var err error
 
 	if strings.HasPrefix(channelID, "G") {
-		_, _, err = s.adminAPI.InviteUserToGroup(channelID, userID)
+		_, _, err = s.AdminAPI.InviteUserToGroup(channelID, userID)
 	} else {
-		_, err = s.adminAPI.InviteUserToChannel(channelID, userID)
+		_, err = s.AdminAPI.InviteUserToChannel(channelID, userID)
 	}
 
 	if err != nil {
@@ -107,9 +107,9 @@ func (s SlackResponseHandler) KickUser(userID, channelID string) bool {
 	var err error
 
 	if strings.HasPrefix(channelID, "G") {
-		err = s.adminAPI.KickUserFromGroup(channelID, userID)
+		err = s.AdminAPI.KickUserFromGroup(channelID, userID)
 	} else {
-		err = s.adminAPI.KickUserFromChannel(channelID, userID)
+		err = s.AdminAPI.KickUserFromChannel(channelID, userID)
 	}
 
 	if err != nil {
@@ -121,7 +121,7 @@ func (s SlackResponseHandler) KickUser(userID, channelID string) bool {
 }
 
 func (s SlackResponseHandler) DeleteMessage(channelID, timestamp string) bool {
-	_, _, err := s.adminAPI.DeleteMessage(channelID, timestamp)
+	_, _, err := s.AdminAPI.DeleteMessage(channelID, timestamp)
 
 	if err != nil {
 		log.Println("[!] Response from API Endpoint:", err)
@@ -132,7 +132,7 @@ func (s SlackResponseHandler) DeleteMessage(channelID, timestamp string) bool {
 }
 
 func (s SlackResponseHandler) ReplaceMessagePlaceholders(event rules.Event, message string) string {
-	botInfo := s.botRTM.GetInfo()
+	botInfo := s.BotRTM.GetInfo()
 	message = strings.Replace(message, "{Sender_Name}", "<@"+event.UserID+">", 1)
 	message = strings.Replace(message, "{Bot_Name}", "<@"+botInfo.User.ID+">", 1)
 	message = strings.Replace(message, "{Channel_Name}", event.ChannelName, 1)
