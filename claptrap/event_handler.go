@@ -26,6 +26,8 @@ func (eh *EventHandler) Start() {
 		switch ev := msg.Data.(type) {
 		case *slack.MessageEvent:
 			go eh.handleMessageEvent(ev)
+		case *slack.ConnectionErrorEvent:
+			log.Printf("[!] Error Connecting to Slack RTM: %s (Attempt: %d)\n", ev.ErrorObj, ev.Attempt)
 		default:
 
 			// Ignore other events..
