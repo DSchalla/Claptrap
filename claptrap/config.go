@@ -1,16 +1,20 @@
 package claptrap
 
 type Config struct {
-	BotToken   string
-	AdminToken string
+	ApiUrl   string
+	Username string
+	Password string
+	Team string
 	CaseDir    string
 	AutoJoinAllChannel bool
 }
 
-func NewConfig(botToken, adminToken, configDir string, autoJoinAllChannel bool) Config {
+func NewConfig(apiUrl, username, password, team, configDir string, autoJoinAllChannel bool) Config {
 	config := Config{
-		BotToken:   botToken,
-		AdminToken: adminToken,
+		ApiUrl: apiUrl,
+		Username:   username,
+		Password: password,
+		Team: team,
 		CaseDir:    configDir,
 		AutoJoinAllChannel: autoJoinAllChannel,
 	}

@@ -2,6 +2,7 @@ package rules
 
 type Event struct {
 	Type        string
+	PostID string
 	UserID      string
 	UserName    string
 	UserRole    string
@@ -11,5 +12,5 @@ type Event struct {
 	ChannelID   string
 	ChannelName string
 	Text        string
-	Timestamp   string
+	Timestamp   int64
 }

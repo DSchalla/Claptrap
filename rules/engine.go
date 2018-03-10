@@ -125,6 +125,8 @@ func (e *Engine) checkCases(event Event, cases []Case) bool {
 				"[+] Case '%s' matched", eventCase.Name)
 			e.executeResponse(event, eventCase)
 			hitCase = true
+		} else {
+			log.Printf("[+] Case '%s' did not match", eventCase.Name)
 		}
 	}
 	return hitCase

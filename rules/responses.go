@@ -9,7 +9,7 @@ type ResponseHandler interface {
 	MessageUser(userID, message string) bool
 	InviteUser(userID, channelID string) bool
 	KickUser(userID, channelID string) bool
-	DeleteMessage(channelID, timestamp string) bool
+	DeleteMessage(postID string) bool
 	ReplaceMessagePlaceholders(event Event, message string) string
 }
 
@@ -104,5 +104,5 @@ type DeleteMessageResponse struct {
 
 func (d DeleteMessageResponse) Execute(h ResponseHandler, event Event) bool {
 	log.Printf("[+] Executing 'DeleteMessage' | ChannelID: %s | Timestamp: %s", event.ChannelID, event.Timestamp)
-	return h.DeleteMessage(event.ChannelID, event.Timestamp)
+	return h.DeleteMessage(event.PostID)
 }

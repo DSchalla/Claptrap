@@ -2,19 +2,20 @@ package claptrap
 
 import (
 	"github.com/DSchalla/Claptrap/rules"
-	"github.com/nlopes/slack"
 	"log"
+	"github.com/mattermost/mattermost-server/model"
+	"fmt"
 	"strings"
 )
 
 type EventHandler struct {
-	rtm        *slack.RTM
+	eventChan        <- chan *model.WebSocketEvent
 	ruleEngine *rules.Engine
 }
 
-func NewEventHandler(rtm *slack.RTM, ruleEngine *rules.Engine) *EventHandler {
+func NewEventHandler(eventChan <- chan *model.WebSocketEvent, ruleEngine *rules.Engine) *EventHandler {
 	eh := EventHandler{
-		rtm: rtm,
+		eventChan: eventChan,
 	}
 	eh.ruleEngine = ruleEngine
 	return &eh
@@ -22,100 +23,89 @@ func NewEventHandler(rtm *slack.RTM, ruleEngine *rules.Engine) *EventHandler {
 
 func (eh *EventHandler) Start() {
 	log.Println("[+] Event Handler started and listening")
-	for msg := range eh.rtm.IncomingEvents {
-		switch ev := msg.Data.(type) {
-		case *slack.MessageEvent:
-			go eh.handleMessageEvent(ev)
-		case *slack.ConnectionErrorEvent:
-			log.Printf("[!] Error Connecting to Slack RTM: %s (Attempt: %d)\n", ev.ErrorObj, ev.Attempt)
-		default:
+	for msg := range eh.eventChan {
+		switch msg.Event {
+			case "posted": eh.handleMessageEvent(msg)
 
-			// Ignore other events..
-			// fmt.Printf("Unexpected: %v\n", msg.Data)
 		}
+		fmt.Printf("Unexpected: %+v\n", msg)
 	}
 }
 
-func (eh *EventHandler) handleMessageEvent(event *slack.MessageEvent) {
+func (eh *EventHandler) handleMessageEvent(event *model.WebSocketEvent) {
 
-	if event.User == "" {
-		//ToDo: Specify Subtypes to return early
-		return
-	}
-
-	if event.User == eh.rtm.GetInfo().User.ID {
-		// Ignore messages posted by the Bot itself
-		return
-	}
-
+	post := model.PostFromJson(strings.NewReader(event.Data["post"].(string)))
 	unifiedEvent := rules.Event{}
 	unifiedEvent.Type = "message"
-	unifiedEvent.UserID = event.User
-	unifiedEvent.ChannelID = event.Channel
-	unifiedEvent.Timestamp = event.Timestamp
-	unifiedEvent.Text = event.Text
+	unifiedEvent.PostID = post.Id
+	unifiedEvent.UserID = post.UserId
+	unifiedEvent.UserName = event.Data["sender_name"].(string)
+	unifiedEvent.ChannelID = post.ChannelId
+	unifiedEvent.ChannelName = event.Data["channel_name"].(string)
+	unifiedEvent.Timestamp = post.CreateAt
+	unifiedEvent.Text = post.Message
 	unifiedEvent = eh.addEventMetadata(unifiedEvent)
 	eh.ruleEngine.EvaluateEvent(unifiedEvent)
 }
 
 func (eh *EventHandler) addEventMetadata(event rules.Event) rules.Event {
-	var userName, userRole, channelName, inviterName, inviterRole string
+	/*	var userName, userRole, channelName, inviterName, inviterRole string
 
-	user, err := eh.rtm.GetUserInfo(event.UserID)
-	if err != nil {
-		log.Printf("[!] error occured fetching username: %s\n", err)
-		userName = ""
-		userRole = ""
-	} else {
-		userName = user.Name
-		if user.IsAdmin || user.IsPrimaryOwner || user.IsOwner {
-			userRole = "admin"
-		} else {
-			userRole = "user"
-		}
-	}
-	event.UserName = userName
-	event.UserRole = userRole
-
-	if strings.HasPrefix(event.ChannelID, "C") {
-		channel, err := eh.rtm.GetChannelInfo(event.ChannelID)
-		if err != nil {
-			log.Printf("[!] error occured fetching channel info: %s\n", err)
-			channelName = ""
-		} else {
-			channelName = channel.Name
-		}
-	} else if strings.HasPrefix(event.ChannelID, "G") {
-		group, err := eh.rtm.GetGroupInfo(event.ChannelID)
-		if err != nil {
-			log.Printf("[!] error occured fetching group info: %s\n", err)
-			channelName = ""
-		} else {
-			channelName = group.Name
-		}
-	} else {
-		channelName = "Private Message"
-	}
-
-	event.ChannelName = channelName
-
-	if event.InviterID != "" {
-		inviter, err := eh.rtm.GetUserInfo(event.InviterID)
+		user, err := eh.rtm.GetUserInfo(event.UserID)
 		if err != nil {
 			log.Printf("[!] error occured fetching username: %s\n", err)
-			inviterName = ""
-			inviterRole = ""
+			userName = ""
+			userRole = ""
 		} else {
-			inviterName = inviter.Name
-			if inviter.IsAdmin || inviter.IsPrimaryOwner || inviter.IsOwner {
-				inviterRole = "admin"
+			userName = user.Name
+			if user.IsAdmin || user.IsPrimaryOwner || user.IsOwner {
+				userRole = "admin"
 			} else {
-				inviterRole = "user"
+				userRole = "user"
 			}
 		}
-		event.InviterName = inviterName
-		event.InviterRole = inviterRole
-	}
+		event.UserName = userName
+		event.UserRole = userRole
 
+		if strings.HasPrefix(event.ChannelID, "C") {
+			channel, err := eh.rtm.GetChannelInfo(event.ChannelID)
+			if err != nil {
+				log.Printf("[!] error occured fetching channel info: %s\n", err)
+				channelName = ""
+			} else {
+				channelName = channel.Name
+			}
+		} else if strings.HasPrefix(event.ChannelID, "G") {
+			group, err := eh.rtm.GetGroupInfo(event.ChannelID)
+			if err != nil {
+				log.Printf("[!] error occured fetching group info: %s\n", err)
+				channelName = ""
+			} else {
+				channelName = group.Name
+			}
+		} else {
+			channelName = "Private Message"
+		}
+
+		event.ChannelName = channelName
+
+		if event.InviterID != "" {
+			inviter, err := eh.rtm.GetUserInfo(event.InviterID)
+			if err != nil {
+				log.Printf("[!] error occured fetching username: %s\n", err)
+				inviterName = ""
+				inviterRole = ""
+			} else {
+				inviterName = inviter.Name
+				if inviter.IsAdmin || inviter.IsPrimaryOwner || inviter.IsOwner {
+					inviterRole = "admin"
+				} else {
+					inviterRole = "user"
+				}
+			}
+			event.InviterName = inviterName
+			event.InviterRole = inviterRole
+		}
+	*/
 	return event
 }
