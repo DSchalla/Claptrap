@@ -9,13 +9,13 @@ import (
 )
 
 type EventHandler struct {
-	eventChan        <- chan *model.WebSocketEvent
+	mhHandler	*MattermostHandler
 	ruleEngine *rules.Engine
 }
 
-func NewEventHandler(eventChan <- chan *model.WebSocketEvent, ruleEngine *rules.Engine) *EventHandler {
+func NewEventHandler(mhHandler *MattermostHandler, ruleEngine *rules.Engine) *EventHandler {
 	eh := EventHandler{
-		eventChan: eventChan,
+		mhHandler: mhHandler,
 	}
 	eh.ruleEngine = ruleEngine
 	return &eh
@@ -23,89 +23,103 @@ func NewEventHandler(eventChan <- chan *model.WebSocketEvent, ruleEngine *rules.
 
 func (eh *EventHandler) Start() {
 	log.Println("[+] Event Handler started and listening")
-	for msg := range eh.eventChan {
+	var unifiedEvent rules.Event
+	for msg := range eh.mhHandler.GetMessages() {
 		switch msg.Event {
-			case "posted": eh.handleMessageEvent(msg)
-
+			case "posted": unifiedEvent = eh.handleMessageEvent(msg)
+			case "user_removed": unifiedEvent = eh.handleUserRemovedEvent(msg)
 		}
+
+		if unifiedEvent.Type != "" {
+			eh.ruleEngine.EvaluateEvent(unifiedEvent)
+		}
+
 		fmt.Printf("Unexpected: %+v\n", msg)
+		fmt.Printf("%+v\n", msg.Broadcast)
 	}
 }
 
-func (eh *EventHandler) handleMessageEvent(event *model.WebSocketEvent) {
+func (eh *EventHandler) handleMessageEvent(event *model.WebSocketEvent) rules.Event{
 
 	post := model.PostFromJson(strings.NewReader(event.Data["post"].(string)))
+	if post.Type == "system_add_to_channel"{
+		return eh.handleUserAddEvent(event)
+	}
 	unifiedEvent := rules.Event{}
 	unifiedEvent.Type = "message"
+	unifiedEvent.UserName = event.Data["sender_name"].(string)
+	unifiedEvent.ChannelName = event.Data["channel_name"].(string)
 	unifiedEvent.PostID = post.Id
 	unifiedEvent.UserID = post.UserId
-	unifiedEvent.UserName = event.Data["sender_name"].(string)
 	unifiedEvent.ChannelID = post.ChannelId
-	unifiedEvent.ChannelName = event.Data["channel_name"].(string)
 	unifiedEvent.Timestamp = post.CreateAt
 	unifiedEvent.Text = post.Message
 	unifiedEvent = eh.addEventMetadata(unifiedEvent)
-	eh.ruleEngine.EvaluateEvent(unifiedEvent)
+	return unifiedEvent
+}
+
+func (eh *EventHandler) handleUserAddEvent(event *model.WebSocketEvent) rules.Event{
+	post := model.PostFromJson(strings.NewReader(event.Data["post"].(string)))
+	unifiedEvent := rules.Event{}
+	unifiedEvent.Type = "user_add"
+	unifiedEvent.PostID = post.Id
+	unifiedEvent.ChannelID = post.ChannelId
+	unifiedEvent.UserName = post.Props["addedUsername"].(string)
+	unifiedEvent.ActorName = post.Props["username"].(string)
+	unifiedEvent = eh.addEventMetadata(unifiedEvent)
+	return unifiedEvent
+}
+
+func (eh *EventHandler) handleUserRemovedEvent(event *model.WebSocketEvent) rules.Event{
+	unifiedEvent := rules.Event{}
+	unifiedEvent.Type = "user_remove"
+	unifiedEvent.UserID = event.Data["user_id"].(string)
+	unifiedEvent.ActorID = event.Data["remover_id"].(string)
+	unifiedEvent.ChannelID = event.Broadcast.ChannelId
+	unifiedEvent = eh.addEventMetadata(unifiedEvent)
+	return unifiedEvent
 }
 
 func (eh *EventHandler) addEventMetadata(event rules.Event) rules.Event {
-	/*	var userName, userRole, channelName, inviterName, inviterRole string
+	var user, actor *model.User
+	var channel *model.Channel
+	if event.UserName == "" && event.UserID != "" {
+		user, _ = eh.mhHandler.Client.GetUser(event.UserID, "")
+	} else if event.UserName != "" && event.UserID == "" {
+		user, _ = eh.mhHandler.Client.GetUserByUsername(event.UserName, "")
+	}
 
-		user, err := eh.rtm.GetUserInfo(event.UserID)
-		if err != nil {
-			log.Printf("[!] error occured fetching username: %s\n", err)
-			userName = ""
-			userRole = ""
-		} else {
-			userName = user.Name
-			if user.IsAdmin || user.IsPrimaryOwner || user.IsOwner {
-				userRole = "admin"
-			} else {
-				userRole = "user"
-			}
-		}
-		event.UserName = userName
-		event.UserRole = userRole
+	if user != nil {
+		event.UserID = user.Id
+		event.UserName = user.Username
+		event.UserRole = user.Roles
+		log.Printf("%+v\n", user.Props)
+		log.Printf("%+v\n", user.NotifyProps)
+		log.Printf("%+v\n", user.GetRoles())
+	}
 
-		if strings.HasPrefix(event.ChannelID, "C") {
-			channel, err := eh.rtm.GetChannelInfo(event.ChannelID)
-			if err != nil {
-				log.Printf("[!] error occured fetching channel info: %s\n", err)
-				channelName = ""
-			} else {
-				channelName = channel.Name
-			}
-		} else if strings.HasPrefix(event.ChannelID, "G") {
-			group, err := eh.rtm.GetGroupInfo(event.ChannelID)
-			if err != nil {
-				log.Printf("[!] error occured fetching group info: %s\n", err)
-				channelName = ""
-			} else {
-				channelName = group.Name
-			}
-		} else {
-			channelName = "Private Message"
-		}
+	if event.ActorName == "" && event.ActorID != "" {
+		actor, _ = eh.mhHandler.Client.GetUser(event.ActorID, "")
+	} else if event.ActorName != "" && event.ActorID == "" {
+		actor, _ = eh.mhHandler.Client.GetUserByUsername(event.ActorName, "")
+	}
 
-		event.ChannelName = channelName
+	if actor != nil {
+		event.ActorID = actor.Id
+		event.ActorName = actor.Username
+		event.ActorRole = actor.Roles
+	}
 
-		if event.InviterID != "" {
-			inviter, err := eh.rtm.GetUserInfo(event.InviterID)
-			if err != nil {
-				log.Printf("[!] error occured fetching username: %s\n", err)
-				inviterName = ""
-				inviterRole = ""
-			} else {
-				inviterName = inviter.Name
-				if inviter.IsAdmin || inviter.IsPrimaryOwner || inviter.IsOwner {
-					inviterRole = "admin"
-				} else {
-					inviterRole = "user"
-				}
-			}
-			event.InviterName = inviterName
-			event.InviterRole = inviterRole
-		}
-	*/
+	if event.ChannelName == "" && event.ChannelID != "" {
+		channel, _ = eh.mhHandler.Client.GetChannel(event.ChannelID, "")
+	} else if event.ChannelName != "" && event.ChannelID == "" {
+		channel, _ = eh.mhHandler.Client.GetChannelByName(event.ChannelName, eh.mhHandler.Team.Id, "")
+	}
+
+	if channel != nil {
+		event.ChannelID = channel.Id
+		event.ChannelName = channel.Name
+	}
+
 	return event
 }

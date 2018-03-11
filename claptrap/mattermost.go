@@ -13,7 +13,7 @@ type MattermostHandler struct {
 	Client  *model.Client4
 	Socket  *model.WebSocketClient
 	apiUrl  string
-	team    *model.Team
+	Team    *model.Team
 	BotUser *model.User
 }
 
@@ -28,7 +28,7 @@ func NewMattermostHandler (apiUrl, username, password, team string) *MattermostH
 	} else {
 		mh.BotUser = user
 	}
-	mh.team, _ = mh.Client.GetTeamByName(team, "")
+	mh.Team, _ = mh.Client.GetTeamByName(team, "")
 	return &mh
 }
 
@@ -44,7 +44,7 @@ func (m *MattermostHandler) StartWS() {
 }
 
 func (m *MattermostHandler) AutoJoinAllChannel() {
-	channels, _ := m.Client.GetPublicChannelsForTeam(m.team.Id, 0, 500, "")
+	channels, _ := m.Client.GetPublicChannelsForTeam(m.Team.Id, 0, 500, "")
 	log.Println("[+] Triggering Autojoin of Channels")
 	log.Printf("[+] Getting Channel List -> Found %d channels\n", len(channels))
 	for _, channel := range channels {
@@ -98,7 +98,8 @@ func (m MattermostResponseHandler) DeleteMessage(postID string) bool {
 }
 
 func (m MattermostResponseHandler) ReplaceMessagePlaceholders(event rules.Event, message string) string {
-	message = strings.Replace(message, "{Sender_Name}", event.UserName, 1)
+	message = strings.Replace(message, "{User_Name}", event.UserName, 1)
+	message = strings.Replace(message, "{Actor_Name}", event.ActorName, 1)
 	message = strings.Replace(message, "{Bot_Name}", m.botUser.Username, 1)
 	message = strings.Replace(message, "{Channel_Name}", event.ChannelName, 1)
 	return message

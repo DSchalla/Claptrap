@@ -55,9 +55,9 @@ func (u UserEqualsCondition) Test(event Event) bool {
 	if u.Parameter == "" || u.Parameter == "user" {
 		userID = event.UserID
 		userName = event.UserName
-	} else if u.Parameter == "inviter" {
-		userID = event.InviterID
-		userName = event.InviterName
+	} else if u.Parameter == "actor" {
+		userID = event.ActorID
+		userName = event.ActorName
 	} else {
 		log.Printf("[!] Error: Unknown Parameter for UserIDEqaulsCondition: '%s' \n", u.Parameter)
 	}
@@ -75,8 +75,8 @@ func (u UserIsRoleCondition) Test(event Event) bool {
 
 	if u.Parameter == "" || u.Parameter == "user" {
 		role = event.UserRole
-	} else if u.Parameter == "inviter" {
-		role = event.InviterRole
+	} else if u.Parameter == "actor" {
+		role = event.ActorRole
 	} else {
 		log.Printf("[!] Error: Unknown Parameter for UserIDEqaulsCondition: '%s' \n", u.Parameter)
 	}

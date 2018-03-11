@@ -25,9 +25,9 @@ func (b *BotServer) Start() {
 	b.mattermostHandler.StartWS()
 
 	if b.config.AutoJoinAllChannel {
-		b.mattermostHandler.AutoJoinAllChannel()
+		go b.mattermostHandler.AutoJoinAllChannel()
 	}
-	b.eventHandler = NewEventHandler(b.mattermostHandler.GetMessages(), b.ruleEngine)
+	b.eventHandler = NewEventHandler(b.mattermostHandler, b.ruleEngine)
 	respHandler := NewMattermostResponseHandler(b.mattermostHandler.Client, b.mattermostHandler.BotUser)
 	b.ruleEngine.SetResponseHandler(respHandler)
 	b.ruleEngine.Start()

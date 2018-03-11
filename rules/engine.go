@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-var caseTypes = []string{"message", "channel_join"}
+var caseTypes = []string{"message", "user_add", "user_remove"}
 
 type Engine struct {
 	caseDir         string
