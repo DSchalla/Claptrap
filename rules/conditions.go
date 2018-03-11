@@ -78,10 +78,10 @@ func (u UserIsRoleCondition) Test(event Event) bool {
 	} else if u.Parameter == "actor" {
 		role = event.ActorRole
 	} else {
-		log.Printf("[!] Error: Unknown Parameter for UserIDEqaulsCondition: '%s' \n", u.Parameter)
+		log.Printf("[!] Error: Unknown Parameter for UserIsRoleCondition: '%s' \n", u.Parameter)
 	}
 
-	return role == u.Condition
+	return strings.Contains(role, u.Condition)
 }
 
 type ChannelEqualsCondition struct {

@@ -30,6 +30,10 @@ func (eh *EventHandler) Start() {
 			case "user_removed": unifiedEvent = eh.handleUserRemovedEvent(msg)
 		}
 
+		if unifiedEvent.UserID == eh.mhHandler.BotUser.Id {
+			continue
+		}
+
 		if unifiedEvent.Type != "" {
 			eh.ruleEngine.EvaluateEvent(unifiedEvent)
 		}
@@ -85,7 +89,7 @@ func (eh *EventHandler) addEventMetadata(event rules.Event) rules.Event {
 	var channel *model.Channel
 	if event.UserName == "" && event.UserID != "" {
 		user, _ = eh.mhHandler.Client.GetUser(event.UserID, "")
-	} else if event.UserName != "" && event.UserID == "" {
+	} else  {
 		user, _ = eh.mhHandler.Client.GetUserByUsername(event.UserName, "")
 	}
 
@@ -93,10 +97,10 @@ func (eh *EventHandler) addEventMetadata(event rules.Event) rules.Event {
 		event.UserID = user.Id
 		event.UserName = user.Username
 		event.UserRole = user.Roles
-		log.Printf("%+v\n", user.Props)
-		log.Printf("%+v\n", user.NotifyProps)
-		log.Printf("%+v\n", user.GetRoles())
 	}
+
+	member, _ := eh.mhHandler.Client.GetTeamMember(eh.mhHandler.Team.Id, user.Id, "")
+	event.UserRole += " " + member.Roles
 
 	if event.ActorName == "" && event.ActorID != "" {
 		actor, _ = eh.mhHandler.Client.GetUser(event.ActorID, "")
@@ -108,6 +112,9 @@ func (eh *EventHandler) addEventMetadata(event rules.Event) rules.Event {
 		event.ActorID = actor.Id
 		event.ActorName = actor.Username
 		event.ActorRole = actor.Roles
+
+		member, _ = eh.mhHandler.Client.GetTeamMember(eh.mhHandler.Team.Id, actor.Id, "")
+		event.ActorRole += " " + member.Roles
 	}
 
 	if event.ChannelName == "" && event.ChannelID != "" {
