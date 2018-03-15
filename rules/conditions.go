@@ -97,15 +97,15 @@ type ChannelIsTypeCondition struct {
 }
 
 func (c ChannelIsTypeCondition) Test(event Event) bool {
-	prefix := ""
+	condition := ""
 
-	if c.Condition == "channel" {
-		prefix = "C"
-	} else if c.Condition == "group" {
-		prefix = "G"
+	if c.Condition == "public" {
+		condition = "O"
+	} else if c.Condition == "private" {
+		condition = "P"
 	} else {
-		prefix = "D"
+		condition = "D"
 	}
 
-	return strings.HasPrefix(event.ChannelID, prefix)
+	return event.ChannelType == condition
 }

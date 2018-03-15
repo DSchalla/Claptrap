@@ -21,7 +21,7 @@ func NewMattermostHandler (apiUrl, username, password, team string) *MattermostH
 	mh := MattermostHandler{
 	}
 	mh.apiUrl = apiUrl
-	mh.Client = model.NewAPIv4Client("https://" + apiUrl)
+	mh.Client = model.NewAPIv4Client("http://" + apiUrl)
 	if user, resp := mh.Client.Login(username, password); resp.Error != nil {
 		fmt.Println("There was a problem logging into the Mattermost server.  Are you sure ran the setup steps from the README.md?")
 		os.Exit(1)
@@ -34,7 +34,7 @@ func NewMattermostHandler (apiUrl, username, password, team string) *MattermostH
 
 func (m *MattermostHandler) StartWS() {
 	var err *model.AppError
-	m.Socket, err = model.NewWebSocketClient4("wss://" + m.apiUrl, m.Client.AuthToken)
+	m.Socket, err = model.NewWebSocketClient4("ws://" + m.apiUrl, m.Client.AuthToken)
 	if err != nil {
 		log.Printf("[!] Error connecting to the Mattermost WS: %s\n", err.Message)
 		return
@@ -76,24 +76,28 @@ func (m MattermostResponseHandler) MessagePublic(channelID, message string) bool
 		Message: message,
 	}
 	m.client.CreatePost(post)
+
 	return true
 }
 
 func (m MattermostResponseHandler) MessageUser(userID, message string) bool {
-
+	channel,_ := m.client.CreateDirectChannel(userID, m.botUser.Id)
+	m.MessagePublic(channel.Id, message)
 	return true
 }
 
 func (m MattermostResponseHandler) InviteUser(userID, channelID string) bool {
+	m.client.AddChannelMember(channelID, userID)
 	return true
 }
 
 func (m MattermostResponseHandler) KickUser(userID, channelID string) bool {
-
+	m.client.RemoveUserFromChannel(channelID, userID)
 	return true
 }
 
 func (m MattermostResponseHandler) DeleteMessage(postID string) bool {
+	m.client.DeletePost(postID)
 	return true
 }
 

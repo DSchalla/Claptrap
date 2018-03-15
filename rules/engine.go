@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"path/filepath"
 )
 
 var caseTypes = []string{"message", "user_add", "user_remove"}
@@ -63,11 +64,13 @@ func (e *Engine) ReloadCaseFile(caseType string) bool {
 	}
 
 	if !valid {
+		log.Printf("[+] Invalid Case Type '%s'\n", caseType)
 		return false
 	}
 
 	filePath := path.Join(e.caseDir, caseType+".json")
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		log.Printf("[+] File '%s' does not exist\n", filePath)
 		return false
 	}
 	cases := loadCasesFromFile(filePath)
@@ -91,8 +94,8 @@ func (e *Engine) startCaseFileWatcher() {
 			}
 			if event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Create == fsnotify.Create {
 				log.Println("[+] Case Config modified:", event.Name)
-				caseType := strings.Replace(event.Name, ".json", "", 1)
-				caseType = strings.Replace(caseType, e.caseDir, "", 1)
+				caseType := filepath.Base(event.Name)
+				caseType = strings.Replace(caseType, ".json", "", 1)
 				e.ReloadCaseFile(caseType)
 			}
 		case err := <-e.caseWatcher.Errors:

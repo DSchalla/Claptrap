@@ -11,6 +11,7 @@ type Event struct {
 	ActorRole   string
 	ChannelID   string
 	ChannelName string
+	ChannelType string
 	Text        string
 	Timestamp   int64
 }

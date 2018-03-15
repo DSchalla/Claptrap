@@ -117,15 +117,16 @@ func (eh *EventHandler) addEventMetadata(event rules.Event) rules.Event {
 		event.ActorRole += " " + member.Roles
 	}
 
-	if event.ChannelName == "" && event.ChannelID != "" {
+	if event.ChannelID != "" {
 		channel, _ = eh.mhHandler.Client.GetChannel(event.ChannelID, "")
-	} else if event.ChannelName != "" && event.ChannelID == "" {
+	} else {
 		channel, _ = eh.mhHandler.Client.GetChannelByName(event.ChannelName, eh.mhHandler.Team.Id, "")
 	}
 
 	if channel != nil {
 		event.ChannelID = channel.Id
 		event.ChannelName = channel.Name
+		event.ChannelType = channel.Type
 	}
 
 	return event
