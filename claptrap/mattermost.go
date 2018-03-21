@@ -58,14 +58,14 @@ func (m *MattermostHandler) GetMessages() <-chan *model.WebSocketEvent {
 }
 
 type MattermostResponseHandler struct {
-	client *model.Client4
-	botUser *model.User
+	Client  *model.Client4
+	BotUser *model.User
 }
 
 func NewMattermostResponseHandler(client *model.Client4, botUser *model.User) *MattermostResponseHandler {
 	handler := MattermostResponseHandler{
-		client: client,
-		botUser: botUser,
+		Client:  client,
+		BotUser: botUser,
 	}
 	return &handler
 }
@@ -75,36 +75,36 @@ func (m MattermostResponseHandler) MessagePublic(channelID, message string) bool
 		ChannelId: channelID,
 		Message: message,
 	}
-	m.client.CreatePost(post)
+	m.Client.CreatePost(post)
 
 	return true
 }
 
 func (m MattermostResponseHandler) MessageUser(userID, message string) bool {
-	channel,_ := m.client.CreateDirectChannel(userID, m.botUser.Id)
+	channel,_ := m.Client.CreateDirectChannel(userID, m.BotUser.Id)
 	m.MessagePublic(channel.Id, message)
 	return true
 }
 
 func (m MattermostResponseHandler) InviteUser(userID, channelID string) bool {
-	m.client.AddChannelMember(channelID, userID)
+	m.Client.AddChannelMember(channelID, userID)
 	return true
 }
 
 func (m MattermostResponseHandler) KickUser(userID, channelID string) bool {
-	m.client.RemoveUserFromChannel(channelID, userID)
+	m.Client.RemoveUserFromChannel(channelID, userID)
 	return true
 }
 
 func (m MattermostResponseHandler) DeleteMessage(postID string) bool {
-	m.client.DeletePost(postID)
+	m.Client.DeletePost(postID)
 	return true
 }
 
 func (m MattermostResponseHandler) ReplaceMessagePlaceholders(event rules.Event, message string) string {
 	message = strings.Replace(message, "{User_Name}", event.UserName, 1)
 	message = strings.Replace(message, "{Actor_Name}", event.ActorName, 1)
-	message = strings.Replace(message, "{Bot_Name}", m.botUser.Username, 1)
+	message = strings.Replace(message, "{Bot_Name}", m.BotUser.Username, 1)
 	message = strings.Replace(message, "{Channel_Name}", event.ChannelName, 1)
 	return message
 }

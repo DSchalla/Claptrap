@@ -25,9 +25,11 @@ func (eh *EventHandler) Start() {
 	log.Println("[+] Event Handler started and listening")
 	var unifiedEvent rules.Event
 	for msg := range eh.mhHandler.GetMessages() {
+		unifiedEvent = rules.Event{}
 		switch msg.Event {
 			case "posted": unifiedEvent = eh.handleMessageEvent(msg)
 			case "user_removed": unifiedEvent = eh.handleUserRemovedEvent(msg)
+			default: unifiedEvent = rules.Event{}
 		}
 
 		if unifiedEvent.UserID == eh.mhHandler.BotUser.Id {
