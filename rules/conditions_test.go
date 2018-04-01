@@ -66,18 +66,18 @@ func TestUserEqualsCondition_Test(t *testing.T) {
 
 	cond = rules.UserEqualsCondition{
 		Condition: "foobar",
-		Parameter: "inviter",
+		Parameter: "actor",
 	}
 
-	if !cond.Test(rules.Event{InviterName: "foobar"}) {
+	if !cond.Test(rules.Event{ActorName: "foobar"}) {
 		t.Errorf("Expected True, got False")
 	}
 
-	if !cond.Test(rules.Event{InviterID: "foobar"}) {
+	if !cond.Test(rules.Event{ActorID: "foobar"}) {
 		t.Errorf("Expected True, got False")
 	}
 
-	if cond.Test(rules.Event{InviterID: "abcdef"}) {
+	if cond.Test(rules.Event{ActorID: "abcdef"}) {
 		t.Errorf("Expected False, got True")
 	}
 }
@@ -98,14 +98,14 @@ func TestUserIsRoleCondition_Test(t *testing.T) {
 
 	cond = rules.UserIsRoleCondition{
 		Condition: "admin",
-		Parameter: "inviter",
+		Parameter: "actor",
 	}
 
-	if !cond.Test(rules.Event{InviterRole: "admin"}) {
+	if !cond.Test(rules.Event{ActorRole: "admin"}) {
 		t.Errorf("Expected True, got False")
 	}
 
-	if cond.Test(rules.Event{InviterRole: "user"}) {
+	if cond.Test(rules.Event{ActorRole: "user"}) {
 		t.Errorf("Expected False, got True")
 	}
 }
