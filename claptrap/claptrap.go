@@ -15,8 +15,8 @@ type BotServer struct {
 func NewBotServer(config Config) *BotServer {
 	b := BotServer{}
 	b.config = config
-	b.mattermostHandler = NewMattermostHandler(config.ApiUrl, config.Username, config.Password, config.Team)
-	b.ruleEngine = rules.NewEngine(b.config.CaseDir)
+	b.mattermostHandler = NewMattermostHandler(config.Mattermost.ApiUrl, config.Mattermost.Username, config.Mattermost.Password, config.Mattermost.Team)
+	b.ruleEngine = rules.NewEngine(b.config.General.CaseDir)
 	return &b
 }
 
@@ -24,7 +24,7 @@ func (b *BotServer) Start() {
 	log.Println("[+] Claptrap BotServer starting")
 	b.mattermostHandler.StartWS()
 
-	if b.config.AutoJoinAllChannel {
+	if b.config.General.AutoJoinAllChannel {
 		go b.mattermostHandler.AutoJoinAllChannel()
 	}
 	b.eventHandler = NewEventHandler(b.mattermostHandler, b.ruleEngine)
