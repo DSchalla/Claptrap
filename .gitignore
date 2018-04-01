@@ -1,0 +1,9 @@
+# Ignore Vendor Directory
+/vendor/
+
+# Ignore IntelliJ
+*.iml
+/.idea/
+
+# Ignore Config Directory
+/config/
