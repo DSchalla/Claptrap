@@ -3,35 +3,37 @@ package claptrap
 import (
 	"github.com/DSchalla/Claptrap/rules"
 	"log"
+	"github.com/DSchalla/Claptrap/provider"
 )
 
 type BotServer struct {
 	config       Config
-	mattermostHandler *MattermostHandler
-	eventHandler *EventHandler
+	provider     provider.Provider
 	ruleEngine   *rules.Engine
 }
 
 func NewBotServer(config Config) *BotServer {
 	b := BotServer{}
 	b.config = config
-	b.mattermostHandler = NewMattermostHandler(config.Mattermost.ApiUrl, config.Mattermost.Username, config.Mattermost.Password, config.Mattermost.Team)
+	b.provider = provider.NewMattermost(config.Mattermost.ApiUrl, config.Mattermost.Username, config.Mattermost.Password, config.Mattermost.Team)
 	b.ruleEngine = rules.NewEngine(b.config.General.CaseDir)
 	return &b
 }
 
 func (b *BotServer) Start() {
 	log.Println("[+] Claptrap BotServer starting")
-	b.mattermostHandler.StartWS()
+	b.provider.Connect()
 
 	if b.config.General.AutoJoinAllChannel {
-		go b.mattermostHandler.AutoJoinAllChannel()
+		go b.provider.AutoJoinAllChannel()
 	}
-	b.eventHandler = NewEventHandler(b.mattermostHandler, b.ruleEngine)
-	respHandler := NewMattermostResponseHandler(b.mattermostHandler.Client, b.mattermostHandler.BotUser)
-	b.ruleEngine.SetResponseHandler(respHandler)
+	b.ruleEngine.SetProvider(b.provider)
 	b.ruleEngine.Start()
-	b.eventHandler.Start()
+	go b.provider.ListenForEvents()
+
+	for event := range b.provider.GetEvents() {
+		go b.ruleEngine.EvaluateEvent(event)
+	}
 }
 
 func (b *BotServer) AddCase(caseType string, newCase rules.Case) {

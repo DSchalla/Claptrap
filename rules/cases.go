@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"github.com/DSchalla/Claptrap/provider"
 )
 
 type Case struct {
 	Name         string
 	Conditions   []Condition
 	Responses    []Response
-	ResponseFunc func(event Event, rh ResponseHandler) bool
+	ResponseFunc func(event provider.Event, p provider.Provider) bool
 }
 
 type rawCase struct {

@@ -7,17 +7,18 @@ import (
 	"path"
 	"strings"
 	"path/filepath"
+	"github.com/DSchalla/Claptrap/provider"
 )
 
 var caseTypes = []string{"message", "user_add", "user_remove"}
 
 type Engine struct {
-	caseDir         string
-	caseFiles       map[string][]Case
-	caseDynamic     map[string][]Case
-	caseCombined    map[string][]Case
-	responseHandler ResponseHandler
-	caseWatcher     *fsnotify.Watcher
+	caseDir      string
+	caseFiles    map[string][]Case
+	caseDynamic  map[string][]Case
+	caseCombined map[string][]Case
+	provider     provider.Provider
+	caseWatcher  *fsnotify.Watcher
 }
 
 func NewEngine(caseDir string) *Engine {
@@ -39,8 +40,8 @@ func (e *Engine) Start() {
 	go e.startCaseFileWatcher()
 }
 
-func (e *Engine) SetResponseHandler(handler ResponseHandler) {
-	e.responseHandler = handler
+func (e *Engine) SetProvider(provider provider.Provider) {
+	e.provider = provider
 }
 
 func (e *Engine) AddCase(caseType string, newCase Case) {
@@ -111,7 +112,7 @@ func (e *Engine) combineCaseMap() {
 	}
 }
 
-func (e *Engine) EvaluateEvent(event Event) bool {
+func (e *Engine) EvaluateEvent(event provider.Event) bool {
 	log.Printf(
 		"[+] Event received of type '%s' by '%s' in '%s' \n",
 		event.Type, event.UserName, event.ChannelName,
@@ -120,7 +121,7 @@ func (e *Engine) EvaluateEvent(event Event) bool {
 	return e.checkCases(event, cases)
 }
 
-func (e *Engine) checkCases(event Event, cases []Case) bool {
+func (e *Engine) checkCases(event provider.Event, cases []Case) bool {
 	hitCase := false
 	for _, eventCase := range cases {
 		if e.checkConditions(event, eventCase.Conditions) {
@@ -135,7 +136,7 @@ func (e *Engine) checkCases(event Event, cases []Case) bool {
 	return hitCase
 }
 
-func (e *Engine) checkConditions(event Event, conditions []Condition) bool {
+func (e *Engine) checkConditions(event provider.Event, conditions []Condition) bool {
 	checkResults := make([]bool, len(conditions))
 	for i, condition := range conditions {
 		checkResults[i] = condition.Test(event)
@@ -152,14 +153,14 @@ func (e *Engine) checkConditions(event Event, conditions []Condition) bool {
 	return valid
 }
 
-func (e *Engine) executeResponse(event Event, eventCase Case) bool {
+func (e *Engine) executeResponse(event provider.Event, eventCase Case) bool {
 
 	if eventCase.ResponseFunc != nil {
-		return eventCase.ResponseFunc(event, e.responseHandler)
+		return eventCase.ResponseFunc(event, e.provider)
 	}
 
 	for _, response := range eventCase.Responses {
-		response.Execute(e.responseHandler, event)
+		response.Execute(e.provider, event)
 	}
 
 	return true

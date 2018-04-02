@@ -1,4 +1,4 @@
-package rules
+package provider
 
 type Event struct {
 	Type        string

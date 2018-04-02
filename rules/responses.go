@@ -2,19 +2,11 @@ package rules
 
 import (
 	"log"
+	"github.com/DSchalla/Claptrap/provider"
 )
 
-type ResponseHandler interface {
-	MessagePublic(channelID, message string) bool
-	MessageUser(userID, message string) bool
-	InviteUser(userID, channelID string) bool
-	KickUser(userID, channelID string) bool
-	DeleteMessage(postID string) bool
-	ReplaceMessagePlaceholders(event Event, message string) string
-}
-
 type Response interface {
-	Execute(h ResponseHandler, event Event) bool
+	Execute(p provider.Provider, event provider.Event) bool
 }
 
 type MessageChannelResponse struct {
@@ -22,8 +14,8 @@ type MessageChannelResponse struct {
 	Message   string
 }
 
-func (k MessageChannelResponse) Execute(h ResponseHandler, event Event) bool {
-	message := h.ReplaceMessagePlaceholders(event, k.Message)
+func (k MessageChannelResponse) Execute(p provider.Provider, event provider.Event) bool {
+	message := p.ReplaceMessagePlaceholders(event, k.Message)
 	channelID := ""
 	if len(k.ChannelID) == 0{
 		channelID = event.ChannelID
@@ -32,7 +24,7 @@ func (k MessageChannelResponse) Execute(h ResponseHandler, event Event) bool {
 	}
 
 	log.Printf("[+] Executing 'MessageChannelResponse' | ChannelID: %s \n", channelID)
-	return h.MessagePublic(channelID, message)
+	return p.MessagePublic(channelID, message)
 }
 
 type MessageUserResponse struct {
@@ -40,7 +32,7 @@ type MessageUserResponse struct {
 	Message string
 }
 
-func (k MessageUserResponse) Execute(h ResponseHandler, event Event) bool {
+func (k MessageUserResponse) Execute(p provider.Provider, event provider.Event) bool {
 	userID := ""
 
 	if k.UserID == "" {
@@ -48,11 +40,11 @@ func (k MessageUserResponse) Execute(h ResponseHandler, event Event) bool {
 	} else {
 		userID = k.UserID
 	}
-	message := h.ReplaceMessagePlaceholders(event, k.Message)
+	message := p.ReplaceMessagePlaceholders(event, k.Message)
 
 	log.Printf("[+] Executing 'MessageUserResponse' | UserID: %s \n", userID)
 
-	return h.MessageUser(userID, message)
+	return p.MessageUser(userID, message)
 }
 
 type InviteUserResponse struct {
@@ -60,7 +52,7 @@ type InviteUserResponse struct {
 	UserID    string
 }
 
-func (k InviteUserResponse) Execute(h ResponseHandler, event Event) bool {
+func (k InviteUserResponse) Execute(p provider.Provider, event provider.Event) bool {
 
 	userID := ""
 
@@ -71,7 +63,7 @@ func (k InviteUserResponse) Execute(h ResponseHandler, event Event) bool {
 	}
 
 	log.Printf("[+] Executing 'InviteUserResponse' | ChannelID: %s | UserID: %s\n", k.ChannelID, userID)
-	return h.InviteUser(userID, k.ChannelID)
+	return p.InviteUser(userID, k.ChannelID)
 }
 
 type KickUserResponse struct {
@@ -79,7 +71,7 @@ type KickUserResponse struct {
 	UserID    string
 }
 
-func (k KickUserResponse) Execute(h ResponseHandler, event Event) bool {
+func (k KickUserResponse) Execute(p provider.Provider, event provider.Event) bool {
 	userID := ""
 
 	if k.UserID == "" {
@@ -99,13 +91,13 @@ func (k KickUserResponse) Execute(h ResponseHandler, event Event) bool {
 	}
 
 	log.Printf("[+] Executing 'KickUserResponse' | Channel: %s (%s) | UserID: %s\n", channelName, channelID, userID)
-	return h.KickUser(userID, channelID)
+	return p.KickUser(userID, channelID)
 }
 
 type DeleteMessageResponse struct {
 }
 
-func (d DeleteMessageResponse) Execute(h ResponseHandler, event Event) bool {
+func (d DeleteMessageResponse) Execute(p provider.Provider, event provider.Event) bool {
 	log.Printf("[+] Executing 'DeleteMessage' | Channel: %s (%s) | PostID: %s\n", event.ChannelName, event.ChannelID, event.PostID)
-	return h.DeleteMessage(event.PostID)
+	return p.DeleteMessage(event)
 }
