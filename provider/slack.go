@@ -1,7 +1,6 @@
-package claptrap
+package provider
 
 import (
-	"github.com/DSchalla/Claptrap/rules"
 	"github.com/nlopes/slack"
 	"log"
 	"strings"
@@ -131,7 +130,7 @@ func (s SlackResponseHandler) DeleteMessage(channelID, timestamp string) bool {
 	return true
 }
 
-func (s SlackResponseHandler) ReplaceMessagePlaceholders(event rules.Event, message string) string {
+func (s SlackResponseHandler) ReplaceMessagePlaceholders(event Event, message string) string {
 	botInfo := s.BotRTM.GetInfo()
 	message = strings.Replace(message, "{Sender_Name}", "<@"+event.UserID+">", 1)
 	message = strings.Replace(message, "{Bot_Name}", "<@"+botInfo.User.ID+">", 1)
