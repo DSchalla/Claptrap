@@ -47,6 +47,32 @@ func TestTextStartsWithCondition(t *testing.T) {
 	}
 }
 
+func TestTextMatchesCondition(t *testing.T) {
+	cond, err := rules.NewTextMatchesCondition("^a[0-9]b$")
+
+	if err != nil {
+		t.Errorf("Expected nil, got error")
+	}
+
+	if !cond.Test(provider.Event{Text: "a3b"}) {
+		t.Errorf("Expected True, got False")
+	}
+
+	if cond.Test(provider.Event{Text: "abc a3b"}) {
+		t.Errorf("Expected False, got True")
+	}
+
+	if cond.Test(provider.Event{Text: "a3b abc"}) {
+		t.Errorf("Expected False, got True")
+	}
+
+	_, err = rules.NewTextMatchesCondition("^a([0-9]]))]b$")
+
+	if err == nil {
+		t.Errorf("Expected error, got nil")
+	}
+}
+
 func TestUserEqualsCondition_Test(t *testing.T) {
 	cond := rules.UserEqualsCondition{
 		Condition: "foobar",

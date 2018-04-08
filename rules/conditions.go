@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"strings"
 	"github.com/DSchalla/Claptrap/provider"
+	"regexp"
 )
 
 type Condition interface {
@@ -35,6 +36,26 @@ func (t TextStartsWithCondition) Test(event provider.Event) bool {
 	return strings.HasPrefix(event.Text, t.Condition)
 }
 
+func NewTextMatchesCondition(expression string) (*TextMatchesCondition, error){
+	var err error
+	c := &TextMatchesCondition{}
+	c.expression = expression
+	c.regexp, err = regexp.Compile(expression)
+	if err != nil {
+		return nil, err
+	}
+	return c, err
+}
+
+type TextMatchesCondition struct {
+	expression string
+	regexp *regexp.Regexp
+}
+
+func (t TextMatchesCondition) Test(event provider.Event) bool {
+	return t.regexp.MatchString(event.Text)
+}
+
 type RandomCondition struct {
 	Likeness int
 }
@@ -61,6 +82,7 @@ func (u UserEqualsCondition) Test(event provider.Event) bool {
 		userName = event.ActorName
 	} else {
 		log.Printf("[!] Error: Unknown Parameter for UserIDEqaulsCondition: '%s' \n", u.Parameter)
+		return false
 	}
 
 	return (userID == u.Condition) || (userName == u.Condition)
@@ -80,6 +102,7 @@ func (u UserIsRoleCondition) Test(event provider.Event) bool {
 		role = event.ActorRole
 	} else {
 		log.Printf("[!] Error: Unknown Parameter for UserIsRoleCondition: '%s' \n", u.Parameter)
+		return false
 	}
 
 	return strings.Contains(role, u.Condition)

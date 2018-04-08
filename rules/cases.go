@@ -82,6 +82,8 @@ func createConditionFromRawCondition(rawCond rawCondition) Condition {
 		realCondition = TextEqualsCondition{Condition: rawCond.Condition}
 	case "text_starts_with":
 		realCondition = TextStartsWithCondition{Condition: rawCond.Condition}
+	case "text_matches":
+		realCondition, _ = NewTextMatchesCondition(rawCond.Condition)
 	case "user_equals":
 		realCondition = UserEqualsCondition{Condition: rawCond.Condition, Parameter: rawCond.Parameter}
 	case "user_is_role":
