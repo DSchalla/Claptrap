@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"github.com/DSchalla/Claptrap/provider"
+	"log"
 )
 
 type Case struct {
@@ -59,7 +60,13 @@ func createCaseFromRawCase(r rawCase) Case {
 	parsedResponses := make([]Response, len(r.Responses))
 
 	for i, condition := range r.Conditions {
-		parsedConditions[i] = createConditionFromRawCondition(condition)
+		parsedCondition, err := createConditionFromRawCondition(condition)
+
+		if err != nil {
+			parsedConditions[i] = parsedCondition
+		} else {
+			log.Printf("[!] Error parsing case %s: %s -> Skipped\n", parsedCase.Name, err)
+		}
 	}
 
 	for i, response := range r.Responses {
@@ -72,33 +79,33 @@ func createCaseFromRawCase(r rawCase) Case {
 	return parsedCase
 }
 
-func createConditionFromRawCondition(rawCond rawCondition) Condition {
+func createConditionFromRawCondition(rawCond rawCondition) (Condition, error) {
 	var realCondition Condition
-
+	var err error
 	switch condType := rawCond.CondType; condType {
 	case "text_contains":
-		realCondition = TextContainsCondition{Condition: rawCond.Condition}
+		realCondition, err = NewTextContainsCondition(rawCond.Condition)
 	case "text_equals":
-		realCondition = TextEqualsCondition{Condition: rawCond.Condition}
+		realCondition, err = NewTextEqualsCondition(rawCond.Condition)
 	case "text_starts_with":
-		realCondition = TextStartsWithCondition{Condition: rawCond.Condition}
+		realCondition, err = NewTextStartsWithCondition(rawCond.Condition)
 	case "text_matches":
-		realCondition, _ = NewTextMatchesCondition(rawCond.Condition)
+		realCondition, err = NewTextMatchesCondition(rawCond.Condition)
 	case "user_equals":
-		realCondition = UserEqualsCondition{Condition: rawCond.Condition, Parameter: rawCond.Parameter}
+		realCondition, err = NewUserEqualsCondition(rawCond.Condition, rawCond.Parameter)
 	case "user_is_role":
-		realCondition = UserIsRoleCondition{Condition: rawCond.Condition, Parameter: rawCond.Parameter}
+		realCondition, err = NewUserIsRoleCondition(rawCond.Condition, rawCond.Parameter)
 	case "channel_equals":
-		realCondition = ChannelEqualsCondition{Condition: rawCond.Condition}
+		realCondition, err = NewChannelEqualsCondition(rawCond.Condition)
 	case "channel_is_type":
-		realCondition = ChannelIsTypeCondition{Condition: rawCond.Condition}
+		realCondition, err = NewChannelIsTypeCondition(rawCond.Condition)
 	case "random":
-		realCondition = RandomCondition{Likeness: rawCond.Likeness}
+		realCondition, err = NewRandomCondition(rawCond.Likeness)
 	default:
-		fmt.Errorf("Invalid Condition Type: %s\n", condType)
+		err = fmt.Errorf("Invalid Condition Type: %s\n", condType)
 	}
 
-	return realCondition
+	return realCondition, err
 }
 
 func createResponseFromRawResponse(rawResp rawResponse) Response {

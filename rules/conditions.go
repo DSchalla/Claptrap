@@ -1,15 +1,19 @@
 package rules
 
 import (
-	"log"
 	"math/rand"
 	"strings"
 	"github.com/DSchalla/Claptrap/provider"
 	"regexp"
+	"fmt"
 )
 
 type Condition interface {
 	Test(event provider.Event) bool
+}
+
+func NewTextContainsCondition(condition string) (*TextContainsCondition, error){
+	return &TextContainsCondition{Condition: condition}, nil
 }
 
 type TextContainsCondition struct {
@@ -20,12 +24,20 @@ func (t TextContainsCondition) Test(event provider.Event) bool {
 	return strings.Contains(event.Text, t.Condition)
 }
 
+func NewTextEqualsCondition(condition string) (*TextEqualsCondition, error){
+	return &TextEqualsCondition{Condition: condition}, nil
+}
+
 type TextEqualsCondition struct {
 	Condition string
 }
 
 func (t TextEqualsCondition) Test(event provider.Event) bool {
 	return event.Text == t.Condition
+}
+
+func NewTextStartsWithCondition(condition string) (*TextStartsWithCondition, error){
+	return &TextStartsWithCondition{Condition: condition}, nil
 }
 
 type TextStartsWithCondition struct {
@@ -56,6 +68,10 @@ func (t TextMatchesCondition) Test(event provider.Event) bool {
 	return t.regexp.MatchString(event.Text)
 }
 
+func NewRandomCondition(likeness int) (*RandomCondition, error){
+	return &RandomCondition{Likeness: likeness}, nil
+}
+
 type RandomCondition struct {
 	Likeness int
 }
@@ -63,6 +79,15 @@ type RandomCondition struct {
 func (t RandomCondition) Test(event provider.Event) bool {
 	randomInt := rand.Int()
 	return t.Likeness > (randomInt % 100)
+}
+
+func NewUserEqualsCondition(condition, parameter string) (*UserEqualsCondition, error){
+
+	if parameter != "" && parameter != "user" && parameter != "actor" {
+		return nil, fmt.Errorf("unknown Parameter for UserIDEqualsCondition: '%s'", parameter)
+	}
+
+	return &UserEqualsCondition{Condition: condition, Parameter: parameter}, nil
 }
 
 type UserEqualsCondition struct {
@@ -74,18 +99,26 @@ func (u UserEqualsCondition) Test(event provider.Event) bool {
 	userID := ""
 	userName := ""
 
-	if u.Parameter == "" || u.Parameter == "user" {
+	if u.Parameter == "actor" {
 		userID = event.UserID
 		userName = event.UserName
-	} else if u.Parameter == "actor" {
 		userID = event.ActorID
 		userName = event.ActorName
 	} else {
-		log.Printf("[!] Error: Unknown Parameter for UserIDEqaulsCondition: '%s' \n", u.Parameter)
-		return false
+		userID = event.UserID
+		userName = event.UserName
 	}
 
 	return (userID == u.Condition) || (userName == u.Condition)
+}
+
+func NewUserIsRoleCondition(condition, parameter string) (*UserIsRoleCondition, error){
+
+	if parameter != "" && parameter != "user" && parameter != "actor" {
+		return nil, fmt.Errorf("unknown Parameter for UserIsRoleCondition: '%s'", parameter)
+	}
+
+	return &UserIsRoleCondition{Condition: condition, Parameter: parameter}, nil
 }
 
 type UserIsRoleCondition struct {
@@ -96,16 +129,17 @@ type UserIsRoleCondition struct {
 func (u UserIsRoleCondition) Test(event provider.Event) bool {
 	role := ""
 
-	if u.Parameter == "" || u.Parameter == "user" {
-		role = event.UserRole
-	} else if u.Parameter == "actor" {
+	if u.Parameter == "actor" {
 		role = event.ActorRole
 	} else {
-		log.Printf("[!] Error: Unknown Parameter for UserIsRoleCondition: '%s' \n", u.Parameter)
-		return false
+		role = event.UserRole
 	}
 
 	return strings.Contains(role, u.Condition)
+}
+
+func NewChannelEqualsCondition(condition string) (*ChannelEqualsCondition, error){
+	return &ChannelEqualsCondition{Condition: condition}, nil
 }
 
 type ChannelEqualsCondition struct {
@@ -114,6 +148,11 @@ type ChannelEqualsCondition struct {
 
 func (c ChannelEqualsCondition) Test(event provider.Event) bool {
 	return (event.ChannelID == c.Condition) || (event.ChannelName == c.Condition)
+}
+
+
+func NewChannelIsTypeCondition(condition string) (*ChannelIsTypeCondition, error){
+	return &ChannelIsTypeCondition{Condition: condition}, nil
 }
 
 type ChannelIsTypeCondition struct {
