@@ -7,9 +7,7 @@ import (
 )
 
 func TestTextContainsCondition(t *testing.T) {
-	cond := rules.TextContainsCondition{
-		Condition: "Test",
-	}
+	cond, _ := rules.NewTextContainsCondition("Test")
 	if !cond.Test(provider.Event{Text: "Test 123"}) {
 		t.Errorf("Expected True, got False")
 	}
@@ -20,9 +18,7 @@ func TestTextContainsCondition(t *testing.T) {
 }
 
 func TestTextEqualsCondition(t *testing.T) {
-	cond := rules.TextEqualsCondition{
-		Condition: "Foobar",
-	}
+	cond, _ := rules.NewTextEqualsCondition("Foobar")
 
 	if !cond.Test(provider.Event{Text: "Foobar"}) {
 		t.Errorf("Expected True, got False")
@@ -34,9 +30,7 @@ func TestTextEqualsCondition(t *testing.T) {
 }
 
 func TestTextStartsWithCondition(t *testing.T) {
-	cond := rules.TextStartsWithCondition{
-		Condition: "Foobar",
-	}
+	cond, _ := rules.NewTextStartsWithCondition("Foobar")
 
 	if !cond.Test(provider.Event{Text: "Foobar abc"}) {
 		t.Errorf("Expected True, got False")
@@ -74,10 +68,7 @@ func TestTextMatchesCondition(t *testing.T) {
 }
 
 func TestUserEqualsCondition_Test(t *testing.T) {
-	cond := rules.UserEqualsCondition{
-		Condition: "foobar",
-		Parameter: "user",
-	}
+	cond, _ := rules.NewUserEqualsCondition("foobar", "user")
 
 	if !cond.Test(provider.Event{UserName: "foobar"}) {
 		t.Errorf("Expected True, got False")
@@ -91,10 +82,8 @@ func TestUserEqualsCondition_Test(t *testing.T) {
 		t.Errorf("Expected False, got True")
 	}
 
-	cond = rules.UserEqualsCondition{
-		Condition: "foobar",
-		Parameter: "actor",
-	}
+	cond, _ = rules.NewUserEqualsCondition("foobar", "actor")
+
 
 	if !cond.Test(provider.Event{ActorName: "foobar"}) {
 		t.Errorf("Expected True, got False")
@@ -107,13 +96,16 @@ func TestUserEqualsCondition_Test(t *testing.T) {
 	if cond.Test(provider.Event{ActorID: "abcdef"}) {
 		t.Errorf("Expected False, got True")
 	}
+
+	_, err := rules.NewUserEqualsCondition("foobar", "doesntexist")
+
+	if err == nil {
+		t.Errorf("Expected error, got nil")
+	}
 }
 
 func TestUserIsRoleCondition_Test(t *testing.T) {
-	cond := rules.UserIsRoleCondition{
-		Condition: "admin",
-		Parameter: "user",
-	}
+	cond, _ := rules.NewUserIsRoleCondition("admin", "user")
 
 	if !cond.Test(provider.Event{UserRole: "admin"}) {
 		t.Errorf("Expected True, got False")
@@ -123,10 +115,7 @@ func TestUserIsRoleCondition_Test(t *testing.T) {
 		t.Errorf("Expected False, got True")
 	}
 
-	cond = rules.UserIsRoleCondition{
-		Condition: "admin",
-		Parameter: "actor",
-	}
+	cond, _ = rules.NewUserIsRoleCondition("admin", "actor")
 
 	if !cond.Test(provider.Event{ActorRole: "admin"}) {
 		t.Errorf("Expected True, got False")
@@ -135,12 +124,16 @@ func TestUserIsRoleCondition_Test(t *testing.T) {
 	if cond.Test(provider.Event{ActorRole: "user"}) {
 		t.Errorf("Expected False, got True")
 	}
+
+	_, err := rules.NewUserIsRoleCondition("foobar", "doesntexist")
+
+	if err == nil {
+		t.Errorf("Expected error, got nil")
+	}
 }
 
 func TestChannelEqualsCondition_Test(t *testing.T) {
-	cond := rules.ChannelEqualsCondition{
-		Condition: "foobar",
-	}
+	cond, _ := rules.NewChannelEqualsCondition("foobar")
 
 	if !cond.Test(provider.Event{ChannelID: "foobar"}) {
 		t.Errorf("Expected True, got False")
@@ -160,9 +153,7 @@ func TestChannelEqualsCondition_Test(t *testing.T) {
 }
 
 func TestChannelIsTypeCondition_Test(t *testing.T) {
-	cond := rules.ChannelIsTypeCondition{
-		Condition: "public",
-	}
+	cond, _ := rules.NewChannelIsTypeCondition("public")
 
 	if !cond.Test(provider.Event{ChannelType: "O"}) {
 		t.Errorf("Expected True, Got False")
@@ -172,9 +163,7 @@ func TestChannelIsTypeCondition_Test(t *testing.T) {
 		t.Errorf("Expected False, got True")
 	}
 
-	cond = rules.ChannelIsTypeCondition{
-		Condition: "private",
-	}
+	cond, _ = rules.NewChannelIsTypeCondition("private")
 
 	if !cond.Test(provider.Event{ChannelType: "P"}) {
 		t.Errorf("Expected True, Got False")
@@ -184,9 +173,8 @@ func TestChannelIsTypeCondition_Test(t *testing.T) {
 		t.Errorf("Expected False, got True")
 	}
 
-	cond = rules.ChannelIsTypeCondition{
-		Condition: "dm",
-	}
+	cond, _ = rules.NewChannelIsTypeCondition("dm")
+
 
 	if !cond.Test(provider.Event{ChannelType: "D"}) {
 		t.Errorf("Expected True, Got False")
