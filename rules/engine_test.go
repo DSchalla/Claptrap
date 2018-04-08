@@ -3,6 +3,7 @@ package rules_test
 import (
 	"github.com/DSchalla/Claptrap/rules"
 	"testing"
+	"github.com/DSchalla/Claptrap/provider"
 )
 
 func TestEngine_EvaluateMessageEvent(t *testing.T) {
@@ -19,7 +20,7 @@ func TestEngine_EvaluateMessageEvent(t *testing.T) {
 	e := rules.NewEngine("")
 	e.AddCase("message", testCase)
 
-	event := rules.Event{
+	event := provider.Event{
 		UserID:      "UABCDEF",
 		UserName:    "ABCDEF",
 		ChannelID:   "CABCDEF",
@@ -32,7 +33,7 @@ func TestEngine_EvaluateMessageEvent(t *testing.T) {
 		t.Errorf("Expected True, got False")
 	}
 
-	event = rules.Event{
+	event = provider.Event{
 		UserID:      "UABCDEF",
 		UserName:    "ABCDEF",
 		ChannelID:   "CABCDEF",

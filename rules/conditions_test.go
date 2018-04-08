@@ -135,26 +135,26 @@ func TestChannelEqualsCondition_Test(t *testing.T) {
 
 func TestChannelIsTypeCondition_Test(t *testing.T) {
 	cond := rules.ChannelIsTypeCondition{
-		Condition: "channel",
+		Condition: "public",
 	}
 
-	if !cond.Test(provider.Event{ChannelID: "C123456"}) {
+	if !cond.Test(provider.Event{ChannelType: "O"}) {
 		t.Errorf("Expected True, Got False")
 	}
 
-	if cond.Test(provider.Event{ChannelID: "D123546"}) {
+	if cond.Test(provider.Event{ChannelType: "D"}) {
 		t.Errorf("Expected False, got True")
 	}
 
 	cond = rules.ChannelIsTypeCondition{
-		Condition: "group",
+		Condition: "private",
 	}
 
-	if !cond.Test(provider.Event{ChannelID: "G123456"}) {
+	if !cond.Test(provider.Event{ChannelType: "P"}) {
 		t.Errorf("Expected True, Got False")
 	}
 
-	if cond.Test(provider.Event{ChannelID: "C123546"}) {
+	if cond.Test(provider.Event{ChannelType: "D"}) {
 		t.Errorf("Expected False, got True")
 	}
 
@@ -162,11 +162,11 @@ func TestChannelIsTypeCondition_Test(t *testing.T) {
 		Condition: "dm",
 	}
 
-	if !cond.Test(provider.Event{ChannelID: "D123456"}) {
+	if !cond.Test(provider.Event{ChannelType: "D"}) {
 		t.Errorf("Expected True, Got False")
 	}
 
-	if cond.Test(provider.Event{ChannelID: "C123546"}) {
+	if cond.Test(provider.Event{ChannelType: "O"}) {
 		t.Errorf("Expected False, got True")
 	}
 }
