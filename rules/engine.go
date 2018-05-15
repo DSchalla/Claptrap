@@ -129,14 +129,17 @@ func (e *Engine) checkCases(event provider.Event, cases []Case) bool {
 				"[+] Case '%s' matched", eventCase.Name)
 			e.executeResponse(event, eventCase)
 			hitCase = true
-		} else {
-			log.Printf("[+] Case '%s' did not match", eventCase.Name)
 		}
 	}
 	return hitCase
 }
 
 func (e *Engine) checkConditions(event provider.Event, conditions []Condition) bool {
+
+	if len(conditions) == 0 {
+		return true
+	}
+
 	checkResults := make([]bool, len(conditions))
 	for i, condition := range conditions {
 		checkResults[i] = condition.Test(event)

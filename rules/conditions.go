@@ -100,8 +100,6 @@ func (u UserEqualsCondition) Test(event provider.Event) bool {
 	userName := ""
 
 	if u.Parameter == "actor" {
-		userID = event.UserID
-		userName = event.UserName
 		userID = event.ActorID
 		userName = event.ActorName
 	} else {

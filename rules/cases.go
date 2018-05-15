@@ -108,9 +108,9 @@ func createConditionFromRawCondition(rawCond rawCondition) (Condition, error) {
 	return realCondition, err
 }
 
-func createResponseFromRawResponse(rawResp rawResponse) Response {
+func createResponseFromRawResponse(rawResp rawResponse) (Response, error) {
 	var realResponse Response
-
+	var err error
 	switch respType := rawResp.Action; respType {
 	case "message_channel":
 		realResponse = MessageChannelResponse{ChannelID: rawResp.Channel, Message: rawResp.Message}
@@ -123,8 +123,8 @@ func createResponseFromRawResponse(rawResp rawResponse) Response {
 	case "delete_message":
 		realResponse = DeleteMessageResponse{}
 	default:
-		fmt.Errorf("Invalid Condition Type: %s\n", respType)
+		err = fmt.Errorf("Invalid Condition Type: %s\n", respType)
 	}
 
-	return realResponse
+	return realResponse, err
 }

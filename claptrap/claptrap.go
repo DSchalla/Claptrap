@@ -12,12 +12,12 @@ type BotServer struct {
 	ruleEngine   *rules.Engine
 }
 
-func NewBotServer(config Config) *BotServer {
+func NewBotServer(config Config) (*BotServer, error) {
 	b := BotServer{}
 	b.config = config
 	b.provider = provider.NewMattermost(config.Mattermost.ApiUrl, config.Mattermost.Username, config.Mattermost.Password, config.Mattermost.Team)
 	b.ruleEngine = rules.NewEngine(b.config.General.CaseDir)
-	return &b
+	return &b, nil
 }
 
 func (b *BotServer) Start() {
