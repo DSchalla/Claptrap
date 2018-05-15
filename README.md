@@ -1,4 +1,6 @@
 # Claptrap [WIP]
+[![Build Status](https://travis-ci.org/DSchalla/Claptrap.svg?branch=master)](https://travis-ci.org/DSchalla/Claptrap)
+[![codecov](https://codecov.io/gh/DSchalla/Claptrap/branch/master/graph/badge.svg)](https://codecov.io/gh/DSchalla/Claptrap)
 
 Claptrap is a rule-based bot engine for the Mattermost Chat platform. It allows you to define rules for various events
 and react upon them. Also, it is possible to implement custom responses to extend it with custom API integrations.
@@ -56,6 +58,39 @@ mattermost:
   password: hunter2 [password]
   team: nsf [mattermost team name]
 ```
+
+There are various message types the bot can react on, currently implemented:
+
+* message
+* user_add
+* user_removed
+
+Rules for the message types are defined in JSON files in the `case_dir`, e.g. `cases/message.json`:
+
+```
+[{
+  "name": "Regexp Message",
+  "conditions": [
+    {"type": "text_matches", "condition": "^a[0-9]b$"}
+  ],
+  "responses": [
+    {"action": "message_channel", "message": "Yes, Regexp works!"}
+  ]
+},
+{
+    "name": "Debug",
+    "conditions": [
+      {"type": "text_equals", "condition": "!debug"}
+    ],
+    "responses": [
+      {"action": "kick_user"},
+      {"action": "delete_message"}
+    ]
+  }
+  ]
+```
+
+**TODO:** Add Table for condition / response per message type supported and their parameters.
 
 ## Development
 
