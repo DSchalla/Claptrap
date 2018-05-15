@@ -5,7 +5,6 @@ import (
 	"os"
 	"log"
 	"strings"
-	"fmt"
 )
 
 type Mattermost struct {
@@ -67,9 +66,6 @@ func (m *Mattermost) ListenForEvents() {
 		if unifiedEvent.Type != "" {
 			m.eventChan <- unifiedEvent
 		}
-
-		fmt.Printf("Unexpected: %+v\n", msg)
-		fmt.Printf("%+v\n", msg.Broadcast)
 	}
 }
 
@@ -77,8 +73,11 @@ func (m *Mattermost) handleMessageEvent(event *model.WebSocketEvent) Event{
 
 	post := model.PostFromJson(strings.NewReader(event.Data["post"].(string)))
 	if post.Type == "system_add_to_channel"{
-		return m.handleUserAddEvent(event)
+		return m.handleUserInviteEvent(event)
+	}else if post.Type == "system_join_channel" {
+		return m.handleUserJoinEvent(event)
 	}
+
 	unifiedEvent := Event{}
 	unifiedEvent.Type = "message"
 	unifiedEvent.UserName = event.Data["sender_name"].(string)
@@ -92,7 +91,7 @@ func (m *Mattermost) handleMessageEvent(event *model.WebSocketEvent) Event{
 	return unifiedEvent
 }
 
-func (m *Mattermost) handleUserAddEvent(event *model.WebSocketEvent) Event{
+func (m *Mattermost) handleUserInviteEvent(event *model.WebSocketEvent) Event{
 	post := model.PostFromJson(strings.NewReader(event.Data["post"].(string)))
 	unifiedEvent := Event{}
 	unifiedEvent.Type = "user_add"
@@ -100,6 +99,17 @@ func (m *Mattermost) handleUserAddEvent(event *model.WebSocketEvent) Event{
 	unifiedEvent.ChannelID = post.ChannelId
 	unifiedEvent.UserName = post.Props["addedUsername"].(string)
 	unifiedEvent.ActorName = post.Props["username"].(string)
+	unifiedEvent = m.addEventMetadata(unifiedEvent)
+	return unifiedEvent
+}
+
+func (m *Mattermost) handleUserJoinEvent(event *model.WebSocketEvent) Event{
+	post := model.PostFromJson(strings.NewReader(event.Data["post"].(string)))
+	unifiedEvent := Event{}
+	unifiedEvent.Type = "user_add"
+	unifiedEvent.PostID = post.Id
+	unifiedEvent.ChannelID = post.ChannelId
+	unifiedEvent.UserName = post.Props["username"].(string)
 	unifiedEvent = m.addEventMetadata(unifiedEvent)
 	return unifiedEvent
 }

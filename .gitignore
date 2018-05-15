@@ -5,5 +5,7 @@
 *.iml
 /.idea/
 
-# Ignore Config Directory
+# Ignore Config Directory, Build and Config File
 /config/
+claptrap
+config.yaml

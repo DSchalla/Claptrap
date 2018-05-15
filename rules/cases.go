@@ -62,15 +62,21 @@ func createCaseFromRawCase(r rawCase) Case {
 	for i, condition := range r.Conditions {
 		parsedCondition, err := createConditionFromRawCondition(condition)
 
-		if err != nil {
+		if err == nil {
 			parsedConditions[i] = parsedCondition
 		} else {
-			log.Printf("[!] Error parsing case %s: %s -> Skipped\n", parsedCase.Name, err)
+			log.Printf("[!] Error creating condition %s of case %s: %s -> Skipped\n", condition.CondType, parsedCase.Name, err)
 		}
 	}
 
 	for i, response := range r.Responses {
-		parsedResponses[i] = createResponseFromRawResponse(response)
+		parsedResponse, err := createResponseFromRawResponse(response)
+
+		if err == nil {
+			parsedResponses[i] = parsedResponse
+		} else {
+			log.Printf("[!] Error creating response %s of case %s: %s -> Skipped\n", response.Action, parsedCase.Name, err)
+		}
 	}
 
 	parsedCase.Conditions = parsedConditions
