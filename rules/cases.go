@@ -119,17 +119,17 @@ func createResponseFromRawResponse(rawResp rawResponse) (Response, error) {
 	var err error
 	switch respType := rawResp.Action; respType {
 	case "message_channel":
-		realResponse = MessageChannelResponse{ChannelID: rawResp.Channel, Message: rawResp.Message}
+		realResponse, err = NewMessageChannelResponse(rawResp.Channel, rawResp.Message)
 	case "message_user":
-		realResponse = MessageUserResponse{UserID: rawResp.User, Message: rawResp.Message}
+		realResponse, err = NewMessageUserResponse(rawResp.User, rawResp.Message)
 	case "invite_user":
-		realResponse = InviteUserResponse{ChannelID: rawResp.Channel, UserID: rawResp.User}
+		realResponse, err = NewInviteUserResponse(rawResp.Channel, rawResp.User)
 	case "kick_user":
-		realResponse = KickUserResponse{ChannelID: rawResp.Channel, UserID: rawResp.User}
+		realResponse, err = NewKickUserResponse(rawResp.Channel, rawResp.User)
 	case "delete_message":
-		realResponse = DeleteMessageResponse{}
+		realResponse, err = NewDeleteMessageResponse()
 	default:
-		err = fmt.Errorf("Invalid Condition Type: %s\n", respType)
+		err = fmt.Errorf("Invalid Response Type: %s\n", respType)
 	}
 
 	return realResponse, err
