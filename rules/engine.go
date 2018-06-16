@@ -1,13 +1,13 @@
 package rules
 
 import (
+	"github.com/DSchalla/Claptrap/provider"
 	"github.com/fsnotify/fsnotify"
 	"log"
 	"os"
 	"path"
-	"strings"
 	"path/filepath"
-	"github.com/DSchalla/Claptrap/provider"
+	"strings"
 )
 
 var caseTypes = []string{"message", "user_add", "user_remove"}
@@ -19,6 +19,7 @@ type Engine struct {
 	caseCombined map[string][]Case
 	provider     provider.Provider
 	caseWatcher  *fsnotify.Watcher
+	conditionMatcher *ConditionMatcher
 }
 
 func NewEngine(caseDir string) *Engine {
@@ -32,6 +33,7 @@ func NewEngine(caseDir string) *Engine {
 	if err != nil {
 		log.Println("[!] Unable to Create File Watcher")
 	}
+	e.conditionMatcher = NewConditionMatcher()
 	return e
 }
 
@@ -124,7 +126,7 @@ func (e *Engine) EvaluateEvent(event provider.Event) bool {
 func (e *Engine) checkCases(event provider.Event, cases []Case) bool {
 	hitCase := false
 	for _, eventCase := range cases {
-		if e.checkConditions(event, eventCase.Conditions) {
+		if e.checkConditions(event, eventCase.ConditionMatching, eventCase.Conditions) {
 			log.Printf(
 				"[+] Case '%s' matched", eventCase.Name)
 			e.executeResponse(event, eventCase)
@@ -134,7 +136,7 @@ func (e *Engine) checkCases(event provider.Event, cases []Case) bool {
 	return hitCase
 }
 
-func (e *Engine) checkConditions(event provider.Event, conditions []Condition) bool {
+func (e *Engine) checkConditions(event provider.Event, matching string, conditions []Condition) bool {
 
 	if len(conditions) == 0 {
 		return true
@@ -145,16 +147,9 @@ func (e *Engine) checkConditions(event provider.Event, conditions []Condition) b
 		checkResults[i] = condition.Test(event)
 	}
 
-	valid := true
-	for _, checkResult := range checkResults {
-		if !checkResult {
-			valid = false
-			break
-		}
-	}
-
-	return valid
+	return e.conditionMatcher.Evaluate(matching, checkResults)
 }
+
 
 func (e *Engine) executeResponse(event provider.Event, eventCase Case) bool {
 

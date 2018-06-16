@@ -1,10 +1,10 @@
 package rules_test
 
 import (
-	"testing"
+	"github.com/DSchalla/Claptrap/provider"
 	"github.com/DSchalla/Claptrap/rules"
 	"os"
-	"github.com/DSchalla/Claptrap/provider"
+	"testing"
 )
 
 var prov *provider.Debug
@@ -13,11 +13,11 @@ var event provider.Event
 func TestMain(m *testing.M) {
 	prov = provider.NewDebug()
 	event = provider.Event{
-		PostID:		 "Post1",
+		PostID:      "Post1",
 		UserID:      "User1",
 		UserName:    "Username1",
-		ActorID: 	 "Actor1",
-		ActorName: 	 "Actorname1",
+		ActorID:     "Actor1",
+		ActorName:   "Actorname1",
 		ChannelID:   "Channel1",
 		ChannelName: "Channelname1",
 		Text:        "hunter2",
@@ -134,7 +134,6 @@ func TestInviteUserResponse(t *testing.T) {
 	}
 }
 
-
 func TestKickUserResponse(t *testing.T) {
 	resp, err := rules.NewKickUserResponse("", "")
 	res := resp.Execute(prov, event)
@@ -174,7 +173,6 @@ func TestKickUserResponse(t *testing.T) {
 		t.Errorf("Expected User2, got %s", prov.KickUserLog[1].UserID)
 	}
 }
-
 
 func TestDeleteMessageResponse(t *testing.T) {
 	resp, err := rules.NewDeleteMessageResponse()

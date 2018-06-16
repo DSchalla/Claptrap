@@ -1,8 +1,8 @@
 package provider
 
 import (
-	"testing"
 	"github.com/mattermost/mattermost-server/model"
+	"testing"
 )
 
 func TestMattermost_handleMessageEvent(t *testing.T) {

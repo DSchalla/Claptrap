@@ -1,18 +1,18 @@
 package rules
 
 import (
-	"math/rand"
-	"strings"
-	"github.com/DSchalla/Claptrap/provider"
-	"regexp"
 	"fmt"
+	"github.com/DSchalla/Claptrap/provider"
+	"math/rand"
+	"regexp"
+	"strings"
 )
 
 type Condition interface {
 	Test(event provider.Event) bool
 }
 
-func NewTextContainsCondition(condition string) (*TextContainsCondition, error){
+func NewTextContainsCondition(condition string) (*TextContainsCondition, error) {
 	return &TextContainsCondition{Condition: condition}, nil
 }
 
@@ -24,7 +24,7 @@ func (t TextContainsCondition) Test(event provider.Event) bool {
 	return strings.Contains(event.Text, t.Condition)
 }
 
-func NewTextEqualsCondition(condition string) (*TextEqualsCondition, error){
+func NewTextEqualsCondition(condition string) (*TextEqualsCondition, error) {
 	return &TextEqualsCondition{Condition: condition}, nil
 }
 
@@ -36,7 +36,7 @@ func (t TextEqualsCondition) Test(event provider.Event) bool {
 	return event.Text == t.Condition
 }
 
-func NewTextStartsWithCondition(condition string) (*TextStartsWithCondition, error){
+func NewTextStartsWithCondition(condition string) (*TextStartsWithCondition, error) {
 	return &TextStartsWithCondition{Condition: condition}, nil
 }
 
@@ -48,7 +48,7 @@ func (t TextStartsWithCondition) Test(event provider.Event) bool {
 	return strings.HasPrefix(event.Text, t.Condition)
 }
 
-func NewTextMatchesCondition(expression string) (*TextMatchesCondition, error){
+func NewTextMatchesCondition(expression string) (*TextMatchesCondition, error) {
 	var err error
 	c := &TextMatchesCondition{}
 	c.expression = expression
@@ -61,14 +61,14 @@ func NewTextMatchesCondition(expression string) (*TextMatchesCondition, error){
 
 type TextMatchesCondition struct {
 	expression string
-	regexp *regexp.Regexp
+	regexp     *regexp.Regexp
 }
 
 func (t TextMatchesCondition) Test(event provider.Event) bool {
 	return t.regexp.MatchString(event.Text)
 }
 
-func NewRandomCondition(likeness int) (*RandomCondition, error){
+func NewRandomCondition(likeness int) (*RandomCondition, error) {
 	return &RandomCondition{Likeness: likeness}, nil
 }
 
@@ -81,7 +81,7 @@ func (t RandomCondition) Test(event provider.Event) bool {
 	return t.Likeness > (randomInt % 100)
 }
 
-func NewUserEqualsCondition(condition, parameter string) (*UserEqualsCondition, error){
+func NewUserEqualsCondition(condition, parameter string) (*UserEqualsCondition, error) {
 
 	if parameter != "" && parameter != "user" && parameter != "actor" {
 		return nil, fmt.Errorf("unknown Parameter for UserIDEqualsCondition: '%s'", parameter)
@@ -110,7 +110,7 @@ func (u UserEqualsCondition) Test(event provider.Event) bool {
 	return (userID == u.Condition) || (userName == u.Condition)
 }
 
-func NewUserIsRoleCondition(condition, parameter string) (*UserIsRoleCondition, error){
+func NewUserIsRoleCondition(condition, parameter string) (*UserIsRoleCondition, error) {
 
 	if parameter != "" && parameter != "user" && parameter != "actor" {
 		return nil, fmt.Errorf("unknown Parameter for UserIsRoleCondition: '%s'", parameter)
@@ -136,7 +136,7 @@ func (u UserIsRoleCondition) Test(event provider.Event) bool {
 	return strings.Contains(role, u.Condition)
 }
 
-func NewChannelEqualsCondition(condition string) (*ChannelEqualsCondition, error){
+func NewChannelEqualsCondition(condition string) (*ChannelEqualsCondition, error) {
 	return &ChannelEqualsCondition{Condition: condition}, nil
 }
 
@@ -148,8 +148,7 @@ func (c ChannelEqualsCondition) Test(event provider.Event) bool {
 	return (event.ChannelID == c.Condition) || (event.ChannelName == c.Condition)
 }
 
-
-func NewChannelIsTypeCondition(condition string) (*ChannelIsTypeCondition, error){
+func NewChannelIsTypeCondition(condition string) (*ChannelIsTypeCondition, error) {
 	return &ChannelIsTypeCondition{Condition: condition}, nil
 }
 

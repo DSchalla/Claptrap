@@ -1,15 +1,15 @@
 package rules
 
 import (
-	"log"
 	"github.com/DSchalla/Claptrap/provider"
+	"log"
 )
 
 type Response interface {
 	Execute(p provider.Provider, event provider.Event) bool
 }
 
-func NewMessageChannelResponse(channelID, message string) (*MessageChannelResponse, error){
+func NewMessageChannelResponse(channelID, message string) (*MessageChannelResponse, error) {
 	return &MessageChannelResponse{channelID, message}, nil
 }
 
@@ -21,7 +21,7 @@ type MessageChannelResponse struct {
 func (k MessageChannelResponse) Execute(p provider.Provider, event provider.Event) bool {
 	message := p.ReplaceMessagePlaceholders(event, k.message)
 	channelID := ""
-	if len(k.channelID) == 0{
+	if len(k.channelID) == 0 {
 		channelID = event.ChannelID
 	} else {
 		channelID = k.channelID
@@ -31,10 +31,9 @@ func (k MessageChannelResponse) Execute(p provider.Provider, event provider.Even
 	return p.MessagePublic(channelID, message)
 }
 
-func NewMessageUserResponse(userID, message string) (*MessageUserResponse, error){
+func NewMessageUserResponse(userID, message string) (*MessageUserResponse, error) {
 	return &MessageUserResponse{userID, message}, nil
 }
-
 
 type MessageUserResponse struct {
 	userID  string
@@ -56,7 +55,7 @@ func (k MessageUserResponse) Execute(p provider.Provider, event provider.Event) 
 	return p.MessageUser(userID, message)
 }
 
-func NewInviteUserResponse(channelID, userID string) (*InviteUserResponse, error){
+func NewInviteUserResponse(channelID, userID string) (*InviteUserResponse, error) {
 	return &InviteUserResponse{channelID, userID}, nil
 }
 
@@ -79,7 +78,7 @@ func (k InviteUserResponse) Execute(p provider.Provider, event provider.Event) b
 	return p.InviteUser(userID, k.channelID)
 }
 
-func NewKickUserResponse(channelID, userID string) (*KickUserResponse, error){
+func NewKickUserResponse(channelID, userID string) (*KickUserResponse, error) {
 	return &KickUserResponse{channelID, userID}, nil
 }
 
@@ -99,7 +98,7 @@ func (k KickUserResponse) Execute(p provider.Provider, event provider.Event) boo
 
 	channelID := ""
 	channelName := ""
-	if len(k.ChannelID) == 0{
+	if len(k.ChannelID) == 0 {
 		channelID = event.ChannelID
 		channelName = event.ChannelName
 	} else {
@@ -111,7 +110,7 @@ func (k KickUserResponse) Execute(p provider.Provider, event provider.Event) boo
 	return p.KickUser(userID, channelID)
 }
 
-func NewDeleteMessageResponse() (*DeleteMessageResponse, error){
+func NewDeleteMessageResponse() (*DeleteMessageResponse, error) {
 	return &DeleteMessageResponse{}, nil
 }
 

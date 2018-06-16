@@ -4,22 +4,22 @@ import "strings"
 
 type messagePublicLog struct {
 	ChannelID string
-	Message string
+	Message   string
 }
 
 type messageUserLog struct {
-	UserID string
+	UserID  string
 	Message string
 }
 
 type inviteUserLog struct {
 	ChannelID string
-	UserID string
+	UserID    string
 }
 
 type kickUserLog struct {
 	ChannelID string
-	UserID string
+	UserID    string
 }
 
 type deleteMessageLog struct {
@@ -28,13 +28,13 @@ type deleteMessageLog struct {
 
 type Debug struct {
 	MessagePublicLog []messagePublicLog
-	MessageUserLog []messageUserLog
-	InviteUserLog []inviteUserLog
-	KickUserLog []kickUserLog
+	MessageUserLog   []messageUserLog
+	InviteUserLog    []inviteUserLog
+	KickUserLog      []kickUserLog
 	DeleteMessageLog []deleteMessageLog
 }
 
-func NewDebug() *Debug{
+func NewDebug() *Debug {
 	d := Debug{}
 	return &d
 }
@@ -67,22 +67,22 @@ func (Debug) GetEmailByUsername(username string) string {
 }
 
 func (d *Debug) MessagePublic(channelID, message string) bool {
-	d.MessagePublicLog = append(d.MessagePublicLog, messagePublicLog{channelID, message,})
+	d.MessagePublicLog = append(d.MessagePublicLog, messagePublicLog{channelID, message})
 	return true
 }
 
 func (d *Debug) MessageUser(userID, message string) bool {
-	d.MessageUserLog = append(d.MessageUserLog, messageUserLog{userID, message,})
+	d.MessageUserLog = append(d.MessageUserLog, messageUserLog{userID, message})
 	return true
 }
 
 func (d *Debug) InviteUser(userID, channelID string) bool {
-	d.InviteUserLog = append(d.InviteUserLog, inviteUserLog{channelID, userID,})
+	d.InviteUserLog = append(d.InviteUserLog, inviteUserLog{channelID, userID})
 	return true
 }
 
 func (d *Debug) KickUser(userID, channelID string) bool {
-	d.KickUserLog = append(d.KickUserLog, kickUserLog{channelID, userID,})
+	d.KickUserLog = append(d.KickUserLog, kickUserLog{channelID, userID})
 	return true
 }
 

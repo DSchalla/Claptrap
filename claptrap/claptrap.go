@@ -1,15 +1,15 @@
 package claptrap
 
 import (
+	"github.com/DSchalla/Claptrap/provider"
 	"github.com/DSchalla/Claptrap/rules"
 	"log"
-	"github.com/DSchalla/Claptrap/provider"
 )
 
 type BotServer struct {
-	config       Config
-	provider     provider.Provider
-	ruleEngine   *rules.Engine
+	config     Config
+	provider   provider.Provider
+	ruleEngine *rules.Engine
 }
 
 func NewBotServer(config Config) (*BotServer, error) {

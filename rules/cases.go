@@ -3,22 +3,25 @@ package rules
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"github.com/DSchalla/Claptrap/provider"
+	"io/ioutil"
 	"log"
+	"strings"
 )
 
 type Case struct {
-	Name         string
-	Conditions   []Condition
-	Responses    []Response
-	ResponseFunc func(event provider.Event, p provider.Provider) bool
+	Name              string
+	ConditionMatching string
+	Conditions        []Condition
+	Responses         []Response
+	ResponseFunc      func(event provider.Event, p provider.Provider) bool
 }
 
 type rawCase struct {
-	Name       string         `json:"name"`
-	Conditions []rawCondition `json:"conditions"`
-	Responses  []rawResponse  `json:"responses"`
+	Name              string         `json:"name"`
+	ConditionMatching string         `json:"condition_matching"`
+	Conditions        []rawCondition `json:"conditions"`
+	Responses         []rawResponse  `json:"responses"`
 }
 
 type rawCondition struct {
@@ -56,6 +59,12 @@ func loadCasesFromFile(filepath string) []Case {
 func createCaseFromRawCase(r rawCase) Case {
 	parsedCase := Case{}
 	parsedCase.Name = r.Name
+	parsedCase.ConditionMatching = strings.ToLower(r.ConditionMatching)
+
+	if parsedCase.ConditionMatching == "" {
+		parsedCase.ConditionMatching = "and"
+	}
+
 	parsedConditions := make([]Condition, len(r.Conditions))
 	parsedResponses := make([]Response, len(r.Responses))
 

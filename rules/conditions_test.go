@@ -1,9 +1,9 @@
 package rules_test
 
 import (
+	"github.com/DSchalla/Claptrap/provider"
 	"github.com/DSchalla/Claptrap/rules"
 	"testing"
-	"github.com/DSchalla/Claptrap/provider"
 )
 
 func TestTextContainsCondition(t *testing.T) {
@@ -83,7 +83,6 @@ func TestUserEqualsCondition_Test(t *testing.T) {
 	}
 
 	cond, _ = rules.NewUserEqualsCondition("foobar", "actor")
-
 
 	if !cond.Test(provider.Event{ActorName: "foobar"}) {
 		t.Errorf("Expected True, got False")
@@ -174,7 +173,6 @@ func TestChannelIsTypeCondition_Test(t *testing.T) {
 	}
 
 	cond, _ = rules.NewChannelIsTypeCondition("dm")
-
 
 	if !cond.Test(provider.Event{ChannelType: "D"}) {
 		t.Errorf("Expected True, Got False")
