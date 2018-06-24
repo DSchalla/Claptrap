@@ -2,12 +2,9 @@ package rules
 
 import (
 	"github.com/DSchalla/Claptrap/provider"
-	"github.com/fsnotify/fsnotify"
 	"log"
 	"os"
 	"path"
-	"path/filepath"
-	"strings"
 )
 
 var caseTypes = []string{"message", "user_add", "user_remove"}
@@ -17,33 +14,28 @@ type Engine struct {
 	caseFiles    map[string][]Case
 	caseDynamic  map[string][]Case
 	caseCombined map[string][]Case
-	provider     provider.Provider
-	caseWatcher  *fsnotify.Watcher
+	provider	provider.Provider
 	conditionMatcher *ConditionMatcher
 }
 
-func NewEngine(caseDir string) *Engine {
-	var err error
+type Result struct {
+	Hit bool
+	HitCases []Case
+	Intercept bool
+}
+
+func NewEngine(provider provider.Provider) *Engine {
 	e := &Engine{}
+	e.provider = provider
 	e.caseFiles = make(map[string][]Case)
 	e.caseDynamic = make(map[string][]Case)
 	e.caseCombined = make(map[string][]Case)
-	e.caseDir = caseDir
-	e.caseWatcher, err = fsnotify.NewWatcher()
-	if err != nil {
-		log.Println("[!] Unable to Create File Watcher")
-	}
 	e.conditionMatcher = NewConditionMatcher()
 	return e
 }
 
 func (e *Engine) Start() {
 	e.ReloadCaseFiles()
-	go e.startCaseFileWatcher()
-}
-
-func (e *Engine) SetProvider(provider provider.Provider) {
-	e.provider = provider
 }
 
 func (e *Engine) AddCase(caseType string, newCase Case) {
@@ -83,57 +75,44 @@ func (e *Engine) ReloadCaseFile(caseType string) bool {
 	return true
 }
 
-func (e *Engine) startCaseFileWatcher() {
-	err := e.caseWatcher.Add(e.caseDir)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for {
-		select {
-		case event := <-e.caseWatcher.Events:
-			if !strings.HasSuffix(event.Name, ".json") {
-				continue
-			}
-			if event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Create == fsnotify.Create {
-				log.Println("[+] Case Config modified:", event.Name)
-				caseType := filepath.Base(event.Name)
-				caseType = strings.Replace(caseType, ".json", "", 1)
-				e.ReloadCaseFile(caseType)
-			}
-		case err := <-e.caseWatcher.Errors:
-			log.Println("[!] Error From Case Watcher:", err)
-		}
-	}
-
-}
-
 func (e *Engine) combineCaseMap() {
 	for _, caseType := range caseTypes {
 		e.caseCombined[caseType] = append(e.caseFiles[caseType], e.caseDynamic[caseType]...)
 	}
 }
 
-func (e *Engine) EvaluateEvent(event provider.Event) bool {
+func (e *Engine) EvaluateEvent(event provider.Event, intercept bool) Result {
 	log.Printf(
 		"[+] Event received of type '%s' by '%s' in '%s' \n",
 		event.Type, event.UserName, event.ChannelName,
 	)
 	cases := e.caseCombined[event.Type]
-	return e.checkCases(event, cases)
+	return e.checkCases(event, cases, intercept)
 }
 
-func (e *Engine) checkCases(event provider.Event, cases []Case) bool {
-	hitCase := false
+func (e *Engine) checkCases(event provider.Event, cases []Case, intercept bool) Result {
+	res := Result{}
+
 	for _, eventCase := range cases {
+
+		if eventCase.Intercept != intercept {
+			continue
+		}
+
 		if e.checkConditions(event, eventCase.ConditionMatching, eventCase.Conditions) {
 			log.Printf(
 				"[+] Case '%s' matched", eventCase.Name)
 			e.executeResponse(event, eventCase)
-			hitCase = true
+
+			res.Hit = true
+			res.HitCases = append(res.HitCases, eventCase)
+			if eventCase.Intercept {
+				res.Intercept = true
+			}
 		}
 	}
-	return hitCase
+
+	return res
 }
 
 func (e *Engine) checkConditions(event provider.Event, matching string, conditions []Condition) bool {

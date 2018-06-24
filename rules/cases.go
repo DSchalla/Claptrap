@@ -11,6 +11,7 @@ import (
 
 type Case struct {
 	Name              string
+	Intercept		  bool
 	ConditionMatching string
 	Conditions        []Condition
 	Responses         []Response
@@ -56,6 +57,20 @@ func loadCasesFromFile(filepath string) []Case {
 
 	return cases
 }
+
+func LoadCasesFromString(caseString string) []Case {
+	var rawCases []rawCase
+
+	json.Unmarshal([]byte(caseString), &rawCases)
+
+	cases := make([]Case, len(rawCases))
+	for i, rawCase := range rawCases {
+		cases[i] = createCaseFromRawCase(rawCase)
+	}
+
+	return cases
+}
+
 func createCaseFromRawCase(r rawCase) Case {
 	parsedCase := Case{}
 	parsedCase.Name = r.Name

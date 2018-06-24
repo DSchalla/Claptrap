@@ -1,6 +1,9 @@
 package provider
 
-import "strings"
+import (
+	"strings"
+	"github.com/mattermost/mattermost-server/model"
+)
 
 type messagePublicLog struct {
 	ChannelID string
@@ -39,30 +42,25 @@ func NewDebug() *Debug {
 	return &d
 }
 
-func (Debug) Connect() bool {
-	return true
-}
-
-func (Debug) Reconnect() bool {
-	return true
-}
-
-func (Debug) IsAlive() bool {
-	return true
-}
-
-func (Debug) ListenForEvents() {
-}
-
-func (Debug) GetEvents() <-chan Event {
-	panic("implement me")
-}
-
 func (Debug) AutoJoinAllChannel() bool {
 	panic("implement me")
 }
 
 func (Debug) GetEmailByUsername(username string) string {
+	panic("implement me")
+}
+
+func (Debug) NormalizeMessageEvent(post *model.Post) Event {
+	panic("implement me")
+}
+
+
+func (Debug) NormalizeUserJoinEvent(post *model.Post) Event {
+	panic("implement me")
+}
+
+
+func (Debug) NormalizeUserInviteEvent(post *model.Post) Event {
 	panic("implement me")
 }
 

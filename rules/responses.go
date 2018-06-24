@@ -3,7 +3,7 @@ package rules
 import (
 	"github.com/DSchalla/Claptrap/provider"
 	"log"
-)
+	)
 
 type Response interface {
 	Execute(p provider.Provider, event provider.Event) bool

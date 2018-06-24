@@ -1,0 +1,17 @@
+id: com.dschalla.claptrap
+name: CL4P-TP
+description: Rule-based bot engine for Mattermost
+backend:
+    executable: claptrap
+settings_schema:
+    settings:
+        - key: name
+          display_name: Bot User
+          type: text
+          default: claptrap
+        - key: cases
+          display_name: Cases
+          type: text
+        - key: auto_join_all_channel
+          display_name: Auto join all channels?
+          type: bool

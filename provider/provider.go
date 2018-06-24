@@ -1,12 +1,14 @@
 package provider
 
+import "github.com/mattermost/mattermost-server/model"
+
 type Provider interface {
-	Connect() bool
-	Reconnect() bool
-	IsAlive() bool
-	ListenForEvents()
-	GetEvents() <-chan Event
 	AutoJoinAllChannel() bool
+
+	// Normalization
+	NormalizeMessageEvent(post *model.Post) Event
+	NormalizeUserInviteEvent(post *model.Post) Event
+	NormalizeUserJoinEvent(post *model.Post) Event
 
 	// Get Information
 	GetEmailByUsername(username string) string

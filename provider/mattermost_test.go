@@ -23,11 +23,7 @@ func TestMattermost_ReplaceMessagePlaceholders(t *testing.T) {
 
 	m := Mattermost{
 		nil,
-		nil,
-		"",
-		nil,
 		&botUser,
-		nil,
 	}
 	given := m.ReplaceMessagePlaceholders(event, message)
 

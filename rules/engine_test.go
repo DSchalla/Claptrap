@@ -17,7 +17,7 @@ func TestEngine_EvaluateMessageEvent(t *testing.T) {
 		Responses: nil,
 	}
 
-	e := rules.NewEngine("")
+	e := rules.NewEngine(nil)
 	e.AddCase("message", testCase)
 
 	event := provider.Event{
@@ -27,9 +27,9 @@ func TestEngine_EvaluateMessageEvent(t *testing.T) {
 		ChannelName: "general",
 		Text:        "abcdef",
 	}
-	hit := e.EvaluateEvent(event)
+	hit := e.EvaluateEvent(event, false)
 
-	if hit {
+	if hit.Hit {
 		t.Errorf("Expected True, got False")
 	}
 
@@ -40,14 +40,9 @@ func TestEngine_EvaluateMessageEvent(t *testing.T) {
 		ChannelName: "general",
 		Text:        "foobar",
 	}
-	hit = e.EvaluateEvent(event)
+	hit = e.EvaluateEvent(event, false)
 
-	if hit {
+	if hit.Hit {
 		t.Errorf("Expected False, got True")
 	}
-}
-
-func TestEngine_ComplexCondition(t *testing.T) {
-	e := rules.NewEngine("")
-	e.Com
 }

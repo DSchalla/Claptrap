@@ -18,7 +18,7 @@ func (c *ConditionMatcher) Evaluate(matching string, results []bool) bool {
 		}
 	}
 
-	if matching == "or" && hits > 0 {
+	if (matching == "or" || matching == "") && hits > 0 {
 		valid = true
 	} else if matching == "and" && hits == len(results) {
 		valid = true
