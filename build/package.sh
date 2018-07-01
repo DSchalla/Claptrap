@@ -5,4 +5,6 @@ cd ../cmd/claptrap
 go build
 mv claptrap ../../build
 cd ../../build
-tar cvfz claptrap-plugin.tar.gz plugin.yaml claptrap
+cp -r "../static" .
+tar cvfz claptrap-plugin.tar.gz plugin.yaml claptrap static/
+rm -rf ./static

@@ -1,26 +1,45 @@
-package rules_test
+package rules
 
 import (
 	"github.com/DSchalla/Claptrap/provider"
-	"github.com/DSchalla/Claptrap/rules"
 	"testing"
+	"encoding/gob"
+	"github.com/mattermost/mattermost-server/plugin/plugintest"
+	"bytes"
 )
 
 func TestEngine_EvaluateMessageEvent(t *testing.T) {
-	testCase := rules.Case{
+	var buffer bytes.Buffer
+
+	testCase := Case{
 		Name: "Example Case",
-		Conditions: []rules.Condition{
-			rules.TextContainsCondition{
+		Conditions: []Condition{
+			TextContainsCondition{
 				Condition: "abc",
 			},
 		},
 		Responses: nil,
 	}
 
-	e := rules.NewEngine(nil)
-	e.AddCase("message", testCase)
+	gob.Register(TextContainsCondition{})
+
+	enc := gob.NewEncoder(&buffer)
+	enc.Encode([]Case{testCase})
+
+	api := &plugintest.API{}
+	api.On("KVSet", "cases.message", buffer.Bytes()).Return(nil)
+	api.On("KVGet", "cases.message").Return(nil, nil)
+
+
+	cm := NewCaseManager(api)
+	cm.Add("message", testCase)
+
+	api.On("KVGet", "cases.message").Return(buffer.Bytes(), nil)
+
+	e := NewEngine(cm, nil, nil)
 
 	event := provider.Event{
+		Type:		 "message",
 		UserID:      "UABCDEF",
 		UserName:    "ABCDEF",
 		ChannelID:   "CABCDEF",
@@ -34,6 +53,7 @@ func TestEngine_EvaluateMessageEvent(t *testing.T) {
 	}
 
 	event = provider.Event{
+		Type:		 "message",
 		UserID:      "UABCDEF",
 		UserName:    "ABCDEF",
 		ChannelID:   "CABCDEF",

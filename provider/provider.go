@@ -3,7 +3,7 @@ package provider
 import "github.com/mattermost/mattermost-server/model"
 
 type Provider interface {
-	AutoJoinAllChannel() bool
+	AutoJoinAllChannel() error
 
 	// Normalization
 	NormalizeMessageEvent(post *model.Post) Event
@@ -16,6 +16,7 @@ type Provider interface {
 	// Actions
 	MessagePublic(channelID, message string) bool
 	MessageUser(userID, message string) bool
+	MessageEphemeral(userID, channelID, message string) bool
 	InviteUser(userID, channelID string) bool
 	KickUser(userID, channelID string) bool
 	DeleteMessage(event Event) bool

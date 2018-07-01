@@ -42,7 +42,7 @@ func NewDebug() *Debug {
 	return &d
 }
 
-func (Debug) AutoJoinAllChannel() bool {
+func (Debug) AutoJoinAllChannel() error {
 	panic("implement me")
 }
 
@@ -54,11 +54,9 @@ func (Debug) NormalizeMessageEvent(post *model.Post) Event {
 	panic("implement me")
 }
 
-
 func (Debug) NormalizeUserJoinEvent(post *model.Post) Event {
 	panic("implement me")
 }
-
 
 func (Debug) NormalizeUserInviteEvent(post *model.Post) Event {
 	panic("implement me")
@@ -72,6 +70,10 @@ func (d *Debug) MessagePublic(channelID, message string) bool {
 func (d *Debug) MessageUser(userID, message string) bool {
 	d.MessageUserLog = append(d.MessageUserLog, messageUserLog{userID, message})
 	return true
+}
+
+func (Debug) MessageEphemeral(userID, channelID, message string) bool {
+	panic("implement me")
 }
 
 func (d *Debug) InviteUser(userID, channelID string) bool {

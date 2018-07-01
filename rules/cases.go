@@ -1,21 +1,119 @@
 package rules
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/DSchalla/Claptrap/provider"
-	"io/ioutil"
 	"log"
 	"strings"
+	"sync"
+	"errors"
+	"time"
+	"github.com/mattermost/mattermost-server/plugin"
+	"bytes"
+	"encoding/gob"
 )
 
 type Case struct {
 	Name              string
-	Intercept		  bool
+	Intercept         bool
 	ConditionMatching string
 	Conditions        []Condition
 	Responses         []Response
 	ResponseFunc      func(event provider.Event, p provider.Provider) bool
+	DeleteTime        time.Time
+}
+
+var ValidTypes = []string{"message", "channel_join"}
+
+func NewCaseManager(api plugin.API) *CaseManager {
+	cm := &CaseManager{}
+	cm.mutex = &sync.RWMutex{}
+	cm.api = api
+
+	gob.Register(TextContainsCondition{})
+	gob.Register(TextEqualsCondition{})
+	gob.Register(TextStartsWithCondition{})
+	gob.Register(TextMatchesCondition{})
+	gob.Register(UserIsRoleCondition{})
+	gob.Register(MessageUserResponse{})
+	gob.Register(MessageChannelResponse{})
+	gob.Register(DeleteMessageResponse{})
+
+	return cm
+}
+
+type CaseManager struct {
+	mutex *sync.RWMutex
+	api   plugin.API
+}
+
+func (c *CaseManager) Add(caseType string, newCase Case) error {
+	var buffer bytes.Buffer
+	var cases []Case
+
+	if !c.validType(caseType) {
+		return errors.New("invalid case type")
+	}
+
+	cases, err := c.GetForType(caseType)
+
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	if err != nil {
+		return err
+	}
+
+	cases = append(cases, newCase)
+	enc := gob.NewEncoder(&buffer)
+	err = enc.Encode(cases)
+
+	if err != nil {
+		return err
+	}
+
+	data := buffer.Bytes()
+	c.api.KVSet("cases."+caseType, data)
+
+	return nil
+}
+
+func (c *CaseManager) GetForType(caseType string) ([]Case, error) {
+	var buffer bytes.Buffer
+	var cases []Case
+
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
+	dec := gob.NewDecoder(&buffer)
+	data, err := c.api.KVGet("cases." + caseType)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if data != nil {
+		buffer.Write(data)
+		err2 := dec.Decode(&cases)
+		if err2 != nil {
+			return nil, err2
+		}
+	}
+
+	return cases, nil
+}
+
+func (c *CaseManager) validType(caseType string) bool {
+	valid := false
+
+	for _, validType := range ValidTypes {
+		if validType == caseType {
+			valid = true
+			break
+		}
+	}
+
+	return valid
 }
 
 type rawCase struct {
@@ -36,39 +134,7 @@ type rawResponse struct {
 	Action  string `json:"action"`
 	User    string `json:"user"`
 	Channel string `json:"channel"`
-	Message string `json:"message"`
-}
-
-func loadCasesFromFile(filepath string) []Case {
-	var rawCases []rawCase
-	raw, err := ioutil.ReadFile(filepath)
-
-	if err != nil {
-		fmt.Println(err.Error())
-		return nil
-	}
-
-	json.Unmarshal(raw, &rawCases)
-
-	cases := make([]Case, len(rawCases))
-	for i, rawCase := range rawCases {
-		cases[i] = createCaseFromRawCase(rawCase)
-	}
-
-	return cases
-}
-
-func LoadCasesFromString(caseString string) []Case {
-	var rawCases []rawCase
-
-	json.Unmarshal([]byte(caseString), &rawCases)
-
-	cases := make([]Case, len(rawCases))
-	for i, rawCase := range rawCases {
-		cases[i] = createCaseFromRawCase(rawCase)
-	}
-
-	return cases
+	Message string `json:"Message"`
 }
 
 func createCaseFromRawCase(r rawCase) Case {
@@ -146,6 +212,8 @@ func createResponseFromRawResponse(rawResp rawResponse) (Response, error) {
 		realResponse, err = NewMessageChannelResponse(rawResp.Channel, rawResp.Message)
 	case "message_user":
 		realResponse, err = NewMessageUserResponse(rawResp.User, rawResp.Message)
+	case "message_ephemeral":
+		realResponse, err = NewMessageEphemeralResponse(rawResp.Message)
 	case "invite_user":
 		realResponse, err = NewInviteUserResponse(rawResp.Channel, rawResp.User)
 	case "kick_user":

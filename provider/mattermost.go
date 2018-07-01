@@ -8,7 +8,7 @@ import (
 )
 
 type Mattermost struct {
-	api		plugin.API
+	api     plugin.API
 	botUser *model.User
 }
 
@@ -19,8 +19,23 @@ func NewMattermost(api plugin.API, botUser *model.User) *Mattermost {
 	return &m
 }
 
-func (m *Mattermost) AutoJoinAllChannel() bool {
-	return true
+func (m *Mattermost) AutoJoinAllChannel() error {
+	teams, err := m.api.GetTeams()
+
+	if err != nil {
+		return err
+	}
+
+	for _, team := range teams {
+		_, err := m.api.GetPublicChannelsForTeam(team.Id, 0, 500)
+
+		if err != nil {
+			return err
+		}
+
+	}
+
+	return nil
 }
 
 func (m *Mattermost) NormalizeMessageEvent(post *model.Post) Event {
@@ -62,7 +77,6 @@ func (m *Mattermost) NormalizeUserJoinEvent(post *model.Post) Event {
 	unifiedEvent = m.addEventMetadata(unifiedEvent)
 	return unifiedEvent
 }
-
 
 func (m *Mattermost) addEventMetadata(event Event) Event {
 	var user, actor *model.User
@@ -127,7 +141,7 @@ func (m *Mattermost) MessagePublic(channelID, message string) bool {
 	post := &model.Post{
 		ChannelId: channelID,
 		Message:   message,
-		UserId: m.botUser.Id,
+		UserId:    m.botUser.Id,
 	}
 	m.api.CreatePost(post)
 
@@ -137,6 +151,16 @@ func (m *Mattermost) MessagePublic(channelID, message string) bool {
 func (m *Mattermost) MessageUser(userID, message string) bool {
 	channel, _ := m.api.GetDirectChannel(userID, m.botUser.Id)
 	m.MessagePublic(channel.Id, message)
+	return true
+}
+
+func (m *Mattermost) MessageEphemeral(userID, channelID, message string) bool {
+	post := &model.Post{
+		ChannelId: channelID,
+		Message:   message,
+	}
+	m.api.SendEphemeralPost(userID, post)
+
 	return true
 }
 

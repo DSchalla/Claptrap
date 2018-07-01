@@ -3,82 +3,31 @@ package rules
 import (
 	"github.com/DSchalla/Claptrap/provider"
 	"log"
-	"os"
-	"path"
+		"github.com/DSchalla/Claptrap/analysis"
 )
 
-var caseTypes = []string{"message", "user_add", "user_remove"}
+var caseTypes = []string{"Message", "user_add", "user_remove"}
 
 type Engine struct {
-	caseDir      string
-	caseFiles    map[string][]Case
-	caseDynamic  map[string][]Case
-	caseCombined map[string][]Case
-	provider	provider.Provider
+	caseManager      *CaseManager
+	provider         provider.Provider
 	conditionMatcher *ConditionMatcher
+	audit            *analysis.AuditTrail
 }
 
 type Result struct {
-	Hit bool
-	HitCases []Case
+	Hit       bool
+	HitCases  []Case
 	Intercept bool
 }
 
-func NewEngine(provider provider.Provider) *Engine {
+func NewEngine(caseManager *CaseManager, provider provider.Provider, audit *analysis.AuditTrail) *Engine {
 	e := &Engine{}
 	e.provider = provider
-	e.caseFiles = make(map[string][]Case)
-	e.caseDynamic = make(map[string][]Case)
-	e.caseCombined = make(map[string][]Case)
+	e.caseManager = caseManager
+	e.audit = audit
 	e.conditionMatcher = NewConditionMatcher()
 	return e
-}
-
-func (e *Engine) Start() {
-	e.ReloadCaseFiles()
-}
-
-func (e *Engine) AddCase(caseType string, newCase Case) {
-	e.caseDynamic[caseType] = append(e.caseDynamic[caseType], newCase)
-	e.combineCaseMap()
-}
-
-func (e *Engine) ReloadCaseFiles() {
-	for _, caseType := range caseTypes {
-		e.ReloadCaseFile(caseType)
-	}
-}
-
-func (e *Engine) ReloadCaseFile(caseType string) bool {
-	valid := false
-	for _, validType := range caseTypes {
-		if validType == caseType {
-			valid = true
-			break
-		}
-	}
-
-	if !valid {
-		log.Printf("[+] Invalid Case Type '%s'\n", caseType)
-		return false
-	}
-
-	filePath := path.Join(e.caseDir, caseType+".json")
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		log.Printf("[+] File '%s' does not exist\n", filePath)
-		return false
-	}
-	cases := loadCasesFromFile(filePath)
-	e.caseFiles[caseType] = cases
-	log.Printf("[+] %d file cases loaded for type '%s'", len(cases), caseType)
-	e.combineCaseMap()
-	return true
-}
-
-func (e *Engine) combineCaseMap() {
-	for _, caseType := range caseTypes {
-		e.caseCombined[caseType] = append(e.caseFiles[caseType], e.caseDynamic[caseType]...)
-	}
 }
 
 func (e *Engine) EvaluateEvent(event provider.Event, intercept bool) Result {
@@ -86,7 +35,8 @@ func (e *Engine) EvaluateEvent(event provider.Event, intercept bool) Result {
 		"[+] Event received of type '%s' by '%s' in '%s' \n",
 		event.Type, event.UserName, event.ChannelName,
 	)
-	cases := e.caseCombined[event.Type]
+	//ToDo: Handle error gracefully and log
+	cases, _ := e.caseManager.GetForType(event.Type)
 	return e.checkCases(event, cases, intercept)
 }
 
@@ -128,7 +78,6 @@ func (e *Engine) checkConditions(event provider.Event, matching string, conditio
 
 	return e.conditionMatcher.Evaluate(matching, checkResults)
 }
-
 
 func (e *Engine) executeResponse(event provider.Event, eventCase Case) bool {
 

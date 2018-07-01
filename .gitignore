@@ -9,3 +9,4 @@
 /config/
 claptrap
 config.yaml
+*.tar.gz

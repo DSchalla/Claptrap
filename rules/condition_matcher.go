@@ -5,7 +5,6 @@ func NewConditionMatcher() *ConditionMatcher {
 }
 
 type ConditionMatcher struct {
-
 }
 
 func (c *ConditionMatcher) Evaluate(matching string, results []bool) bool {
@@ -23,6 +22,8 @@ func (c *ConditionMatcher) Evaluate(matching string, results []bool) bool {
 	} else if matching == "and" && hits == len(results) {
 		valid = true
 	}
+
+	//ToDo: Extend condition engine to support complex cases e.g. "1 AND (2 OR 3)"
 
 	return valid
 }

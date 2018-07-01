@@ -3,7 +3,7 @@ package rules
 import (
 	"github.com/DSchalla/Claptrap/provider"
 	"log"
-	)
+)
 
 type Response interface {
 	Execute(p provider.Provider, event provider.Event) bool
@@ -14,17 +14,17 @@ func NewMessageChannelResponse(channelID, message string) (*MessageChannelRespon
 }
 
 type MessageChannelResponse struct {
-	channelID string
-	message   string
+	ChannelID string
+	Message   string
 }
 
 func (k MessageChannelResponse) Execute(p provider.Provider, event provider.Event) bool {
-	message := p.ReplaceMessagePlaceholders(event, k.message)
+	message := p.ReplaceMessagePlaceholders(event, k.Message)
 	channelID := ""
-	if len(k.channelID) == 0 {
+	if len(k.ChannelID) == 0 {
 		channelID = event.ChannelID
 	} else {
-		channelID = k.channelID
+		channelID = k.ChannelID
 	}
 
 	log.Printf("[+] Executing 'MessageChannelResponse' | ChannelID: %s \n", channelID)
@@ -36,23 +36,41 @@ func NewMessageUserResponse(userID, message string) (*MessageUserResponse, error
 }
 
 type MessageUserResponse struct {
-	userID  string
-	message string
+	UserID  string
+	Message string
 }
 
 func (k MessageUserResponse) Execute(p provider.Provider, event provider.Event) bool {
 	userID := ""
 
-	if k.userID == "" {
+	if k.UserID == "" {
 		userID = event.UserID
 	} else {
-		userID = k.userID
+		userID = k.UserID
 	}
-	message := p.ReplaceMessagePlaceholders(event, k.message)
+	message := p.ReplaceMessagePlaceholders(event, k.Message)
 
 	log.Printf("[+] Executing 'MessageUserResponse' | UserID: %s \n", userID)
 
 	return p.MessageUser(userID, message)
+}
+
+func NewMessageEphemeralResponse(message string) (*MessageEphemeralResponse, error) {
+	return &MessageEphemeralResponse{message}, nil
+}
+
+type MessageEphemeralResponse struct {
+	Message string
+}
+
+func (k MessageEphemeralResponse) Execute(p provider.Provider, event provider.Event) bool {
+
+	userID := event.UserID
+	message := p.ReplaceMessagePlaceholders(event, k.Message)
+
+	log.Printf("[+] Executing 'MessageEphemeralResponse' | UserID: %s \n", userID)
+
+	return p.MessageEphemeral(userID, event.ChannelID, message)
 }
 
 func NewInviteUserResponse(channelID, userID string) (*InviteUserResponse, error) {
@@ -60,22 +78,22 @@ func NewInviteUserResponse(channelID, userID string) (*InviteUserResponse, error
 }
 
 type InviteUserResponse struct {
-	channelID string
-	userID    string
+	ChannelID string
+	UserID    string
 }
 
 func (k InviteUserResponse) Execute(p provider.Provider, event provider.Event) bool {
 
 	userID := ""
 
-	if k.userID == "" {
+	if k.UserID == "" {
 		userID = event.UserID
 	} else {
-		userID = k.userID
+		userID = k.UserID
 	}
 
-	log.Printf("[+] Executing 'InviteUserResponse' | ChannelID: %s | UserID: %s\n", k.channelID, userID)
-	return p.InviteUser(userID, k.channelID)
+	log.Printf("[+] Executing 'InviteUserResponse' | ChannelID: %s | UserID: %s\n", k.ChannelID, userID)
+	return p.InviteUser(userID, k.ChannelID)
 }
 
 func NewKickUserResponse(channelID, userID string) (*KickUserResponse, error) {
