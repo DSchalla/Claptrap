@@ -11,6 +11,7 @@ import (
 	"github.com/mattermost/mattermost-server/plugin"
 	"bytes"
 	"encoding/gob"
+	"github.com/mattermost/mattermost-server/mlog"
 )
 
 type Case struct {
@@ -89,6 +90,7 @@ func (c *CaseManager) GetForType(caseType string) ([]Case, error) {
 	data, err := c.api.KVGet("cases." + caseType)
 
 	if err != nil {
+		mlog.Debug(fmt.Sprintf("[CLAPTRAP-PLUGIN][CaseManager] Unable to get cases: %s", err))
 		return nil, err
 	}
 
@@ -96,6 +98,7 @@ func (c *CaseManager) GetForType(caseType string) ([]Case, error) {
 		buffer.Write(data)
 		err2 := dec.Decode(&cases)
 		if err2 != nil {
+			mlog.Debug(fmt.Sprintf("[CLAPTRAP-PLUGIN][CaseManager] Unable to decode cases: %s", err2))
 			return nil, err2
 		}
 	}

@@ -110,3 +110,20 @@ body {
 .border-bottom {
     border-bottom: 1px solid #e5e5e5;
 }
+
+.dynamic-container {
+    margin-bottom: 20px;
+}
+
+.dynamic-container-remove {
+    float: right;
+    cursor: pointer;
+}
+
+.conditions-nocondition {
+    display: none
+}
+
+.conditions-nocondition:only-child {
+    display: block;
+}

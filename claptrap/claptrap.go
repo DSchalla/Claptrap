@@ -53,12 +53,18 @@ func NewBotServer(api plugin.API, config Config) (*BotServer, error) {
 	mlog.Debug(fmt.Sprintf("BotUser configured: %s (%s)", botUser.Username, botUser.Id))
 
 	b.audit = analysis.NewAuditTrail(api)
+	b.audit.LogStart()
 	b.caseManager = rules.NewCaseManager(api)
 	b.prov = provider.NewMattermost(api, botUser)
 	b.ruleEngine = rules.NewEngine(b.caseManager, b.prov, b.audit)
 	b.webServer = web.NewServer(api, b.caseManager, b.audit)
 
 	return &b, nil
+}
+
+func (b *BotServer) Shutdown() error {
+	b.audit.LogShutdown()
+	return nil
 }
 
 func (b *BotServer) HandleMessage(post *model.Post, intercept bool) (*model.Post, string) {

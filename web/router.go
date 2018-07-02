@@ -3,9 +3,7 @@ package web
 import (
 	"github.com/gorilla/mux"
 	"net/http"
-	"path/filepath"
-	"os"
-	"path"
+			"path"
 	"github.com/mattermost/mattermost-server/mlog"
 	"fmt"
 )
@@ -22,10 +20,13 @@ type router struct {
 }
 
 func (r *router) setRoutes(s *Server) {
-	exe, _ := os.Executable()
-	mlog.Debug(fmt.Sprintf("Setting Static Directory to: %s", path.Join(filepath.Dir(exe), "/static")))
-	r.router.HandleFunc("/config", s.ConfigHandler).Methods("POST")
-	r.router.PathPrefix("/").Handler(http.FileServer(http.Dir(path.Join(filepath.Dir(exe), "static"))))
+	base := path.Join(s.getBasePath(), "/static")
+	mlog.Debug(fmt.Sprintf("Setting Static Directory to: %s", base))
+	r.router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir(base))))
+	r.router.HandleFunc("/", s.IndexHandler)
+	r.router.HandleFunc("/audit", s.AuditHandler)
+	r.router.HandleFunc("/case_new", s.CaseNewHandler).Methods("GET")
+	r.router.HandleFunc("/case_new", s.CaseNewHandlerCreate).Methods("POST")
 }
 
 func (r *router) HandleHTTP(w http.ResponseWriter, req *http.Request) {

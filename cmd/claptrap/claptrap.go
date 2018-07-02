@@ -8,6 +8,8 @@ import (
 	"github.com/DSchalla/Claptrap/claptrap"
 	"github.com/mattermost/mattermost-server/mlog"
 	"github.com/mattermost/mattermost-server/plugin"
+	"fmt"
+	"errors"
 )
 
 type ClaptrapPlugin struct {
@@ -21,8 +23,24 @@ func (c *ClaptrapPlugin) OnActivate() error {
 	var err error
 	c.readConfig()
 	c.claptrap, err = claptrap.NewBotServer(c.API, *c.config)
+	if err != nil {
+		mlog.Debug(fmt.Sprintf("[CLAPTRAP-PLUGIN]  NewBotServer returned error: %s", err))
+	}
 	mlog.Debug("[CLAPTRAP-PLUGIN] OnActivate Hook End")
-	return err
+
+	if err != nil {
+		return errors.New(err.Error())
+	}
+
+	return nil
+}
+
+func (c *ClaptrapPlugin) OnDeactivate() error {
+	if c.claptrap != nil {
+		c.claptrap.Shutdown()
+	}
+
+	return nil
 }
 
 func (c *ClaptrapPlugin) OnConfigurationChange() error {
