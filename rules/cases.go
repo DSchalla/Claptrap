@@ -66,6 +66,7 @@ func (c *CaseManager) Add(caseType string, newCase Case) error {
 	}
 
 	cases = append(cases, newCase)
+	fmt.Printf("%+v", cases)
 	enc := gob.NewEncoder(&buffer)
 	err = enc.Encode(cases)
 
@@ -75,6 +76,8 @@ func (c *CaseManager) Add(caseType string, newCase Case) error {
 
 	data := buffer.Bytes()
 	c.api.KVSet("cases."+caseType, data)
+
+	fmt.Printf("%+v", data)
 
 	return nil
 }
@@ -103,6 +106,8 @@ func (c *CaseManager) GetForType(caseType string) ([]Case, error) {
 		}
 	}
 
+	fmt.Printf("%+v", cases)
+
 	return cases, nil
 }
 
@@ -119,31 +124,33 @@ func (c *CaseManager) validType(caseType string) bool {
 	return valid
 }
 
-type rawCase struct {
+type RawCase struct {
 	Name              string         `json:"name"`
 	ConditionMatching string         `json:"condition_matching"`
-	Conditions        []rawCondition `json:"conditions"`
-	Responses         []rawResponse  `json:"responses"`
+	Intercept bool         `json:"intercept"`
+	Conditions        []RawCondition `json:"conditions"`
+	Responses         []RawResponse  `json:"responses"`
 }
 
-type rawCondition struct {
+type RawCondition struct {
 	CondType  string `json:"type"`
 	Condition string `json:"condition"`
 	Likeness  int    `json:"likeness"`
 	Parameter string `json:"parameter"`
 }
 
-type rawResponse struct {
+type RawResponse struct {
 	Action  string `json:"action"`
 	User    string `json:"user"`
 	Channel string `json:"channel"`
 	Message string `json:"Message"`
 }
 
-func createCaseFromRawCase(r rawCase) Case {
+func CreateCaseFromRawCase(r RawCase) Case {
 	parsedCase := Case{}
 	parsedCase.Name = r.Name
 	parsedCase.ConditionMatching = strings.ToLower(r.ConditionMatching)
+	parsedCase.Intercept = r.Intercept
 
 	if parsedCase.ConditionMatching == "" {
 		parsedCase.ConditionMatching = "and"
@@ -178,17 +185,17 @@ func createCaseFromRawCase(r rawCase) Case {
 	return parsedCase
 }
 
-func createConditionFromRawCondition(rawCond rawCondition) (Condition, error) {
+func createConditionFromRawCondition(rawCond RawCondition) (Condition, error) {
 	var realCondition Condition
 	var err error
 	switch condType := rawCond.CondType; condType {
-	case "text_contains":
+	case "message_contains":
 		realCondition, err = NewTextContainsCondition(rawCond.Condition)
-	case "text_equals":
+	case "message_equals":
 		realCondition, err = NewTextEqualsCondition(rawCond.Condition)
-	case "text_starts_with":
+	case "message_starts_with":
 		realCondition, err = NewTextStartsWithCondition(rawCond.Condition)
-	case "text_matches":
+	case "message_matches":
 		realCondition, err = NewTextMatchesCondition(rawCond.Condition)
 	case "user_equals":
 		realCondition, err = NewUserEqualsCondition(rawCond.Condition, rawCond.Parameter)
@@ -207,7 +214,7 @@ func createConditionFromRawCondition(rawCond rawCondition) (Condition, error) {
 	return realCondition, err
 }
 
-func createResponseFromRawResponse(rawResp rawResponse) (Response, error) {
+func createResponseFromRawResponse(rawResp RawResponse) (Response, error) {
 	var realResponse Response
 	var err error
 	switch respType := rawResp.Action; respType {

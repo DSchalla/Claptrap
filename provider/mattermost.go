@@ -142,6 +142,9 @@ func (m *Mattermost) MessagePublic(channelID, message string) bool {
 		ChannelId: channelID,
 		Message:   message,
 		UserId:    m.botUser.Id,
+		Props: model.StringInterface{
+			"from_claptrap": true,
+		},
 	}
 	m.api.CreatePost(post)
 

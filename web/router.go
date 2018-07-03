@@ -27,6 +27,7 @@ func (r *router) setRoutes(s *Server) {
 	r.router.HandleFunc("/audit", s.AuditHandler)
 	r.router.HandleFunc("/case_new", s.CaseNewHandler).Methods("GET")
 	r.router.HandleFunc("/case_new", s.CaseNewHandlerCreate).Methods("POST")
+	r.router.HandleFunc("/cases/{type}", s.CasesHandler).Methods("GET")
 }
 
 func (r *router) HandleHTTP(w http.ResponseWriter, req *http.Request) {

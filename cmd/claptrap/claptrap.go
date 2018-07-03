@@ -52,6 +52,9 @@ func (c *ClaptrapPlugin) OnConfigurationChange() error {
 }
 
 func (c *ClaptrapPlugin) MessageWillBePosted(post *model.Post) (*model.Post, string) {
+	if post.Props["from_claptrap"] != nil && post.Props["from_claptrap"].(bool) == true {
+		return post, ""
+	}
 	mlog.Debug("[CLAPTRAP-PLUGIN] MessageWillBePosted Hook Start")
 	post, rejectMessage := c.claptrap.HandleMessage(post, true)
 	mlog.Debug("[CLAPTRAP-PLUGIN] MessageWillBePosted Hook End")
@@ -59,6 +62,9 @@ func (c *ClaptrapPlugin) MessageWillBePosted(post *model.Post) (*model.Post, str
 }
 
 func (c *ClaptrapPlugin) MessageHasBeenPosted(post *model.Post) {
+	if post.Props["from_claptrap"] != nil && post.Props["from_claptrap"].(bool) == true {
+		return
+	}
 	mlog.Debug("[CLAPTRAP-PLUGIN] MessageHasBeenPosted Hook Start")
 	c.claptrap.HandleMessage(post, false)
 	mlog.Debug("[CLAPTRAP-PLUGIN] MessageHasBeenPosted Hook End")

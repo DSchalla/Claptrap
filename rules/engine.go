@@ -73,6 +73,11 @@ func (e *Engine) checkConditions(event provider.Event, matching string, conditio
 
 	checkResults := make([]bool, len(conditions))
 	for i, condition := range conditions {
+
+		if condition == nil {
+			continue
+		}
+
 		checkResults[i] = condition.Test(event)
 	}
 
@@ -86,6 +91,11 @@ func (e *Engine) executeResponse(event provider.Event, eventCase Case) bool {
 	}
 
 	for _, response := range eventCase.Responses {
+
+		if response == nil {
+			continue
+		}
+
 		response.Execute(e.provider, event)
 	}
 

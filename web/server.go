@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"path"
 	"time"
+	"github.com/gorilla/mux"
+	"strings"
 )
 
 func NewServer(api plugin.API, caseManager *rules.CaseManager, audit *analysis.AuditTrail) *Server {
@@ -80,7 +82,53 @@ func (s *Server) AuditHandler(w http.ResponseWriter, req *http.Request) {
 		time.Now().Format("2006-01-02"),
 	}
 
-	mlog.Debug(fmt.Sprintf("%+v\n", data.Events))
+
+	context := PageContext{
+		URL: req.URL.Path,
+		Data: data,
+	}
+
+	s.execTemplate(t, w, context)
+}
+
+func (s *Server) CasesHandler(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	t := s.getTemplate()
+	t, err := t.ParseFiles(path.Join(s.getBasePath(), "static/cases.html.tpl"))
+
+	if err != nil {
+		mlog.Error(fmt.Sprintf("[CLAPTRAP][WEB][CasesHandler] Error parsing index template: %s", err))
+	}
+
+	cases, err := s.caseManager.GetForType(vars["type"])
+
+	if err != nil {
+		mlog.Error(fmt.Sprintf("[CLAPTRAP][WEB][CasesHandler] Error getting audit events: %s", err))
+	}
+
+	var templateCases []interface{}
+	for _, engineCase := range cases {
+		templateCases = append(templateCases, struct{
+			Name string
+			NumConditions int
+			NumResponses int
+		}{
+			engineCase.Name,
+			len(engineCase.Conditions),
+			len(engineCase.Responses),
+		})
+	}
+
+
+
+	data := struct {
+		Cases []interface{}
+		Type string
+	}{
+		templateCases,
+		strings.Title(vars["type"]),
+	}
+
 
 	context := PageContext{
 		URL: req.URL.Path,
@@ -106,7 +154,68 @@ func (s *Server) CaseNewHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *Server) CaseNewHandlerCreate(w http.ResponseWriter, req *http.Request) {
+	req.ParseForm()
 
+	intercept := false
+
+	if req.FormValue("intercept") == "Yes"{
+		intercept = true
+	}
+
+	rawCase := rules.RawCase{
+		Name: req.FormValue("casename"),
+		Intercept: intercept,
+		ConditionMatching: req.FormValue("condition_matching"),
+	}
+
+	for i:= 0; i < 10; i++ {
+		prefix := fmt.Sprintf("conditions[%d]", i)
+		conditionType := req.FormValue(prefix+"[type]")
+
+		if conditionType == "" {
+			break
+		}
+
+		conditionValue := ""
+
+		if conditionType == "message_contains" || conditionType == "message_starts_with" {
+			conditionValue = req.FormValue(prefix+"[condition]")
+		}
+
+		rawCond := rules.RawCondition{
+			CondType: conditionType,
+			Condition: conditionValue,
+		}
+		rawCase.Conditions = append(rawCase.Conditions, rawCond)
+	}
+
+	for i:= 0; i < 10; i++ {
+		prefix := fmt.Sprintf("responses[%d]", i)
+		responseType := req.FormValue(prefix+"[type]")
+
+		if responseType == "" {
+			break
+		}
+
+		responseMessage := ""
+
+		if responseType == "message_channel" {
+			responseMessage = req.FormValue(prefix+"[message]")
+		}
+
+		rawResp := rules.RawResponse{
+			Action: responseType,
+			Message: responseMessage,
+		}
+		rawCase.Responses = append(rawCase.Responses, rawResp)
+	}
+
+	newCase := rules.CreateCaseFromRawCase(rawCase)
+	err := s.caseManager.Add(req.FormValue("type"), newCase)
+
+	if err != nil {
+		mlog.Error(fmt.Sprintf("[CLAPTRAP][WEB][CaseNewHandlerCreate] Error Adding Case: %s", err))
+	}
 }
 
 func (s *Server) execTemplate(t *template.Template, w http.ResponseWriter, context interface{}) error{
