@@ -17,7 +17,11 @@
         <td>{{.Name}}</td>
         <td>{{.NumConditions}}</td>
         <td>{{.NumResponses}}</td>
-        <td>{{.}}</td>
+        <td>
+            <form action="/plugins/com.dschalla.claptrap/cases/{{.Type}}/{{.Name}}/delete" method="POST">
+                <button type="submit">Delete</button>
+            </form>
+        </td>
     </tr>
     {{end}}
     </tbody>

@@ -82,6 +82,48 @@ func (c *CaseManager) Add(caseType string, newCase Case) error {
 	return nil
 }
 
+func (c *CaseManager) Delete(caseType, caseName string) error {
+	var buffer bytes.Buffer
+	var cases []Case
+
+	if !c.validType(caseType) {
+		return errors.New("invalid case type")
+	}
+
+	cases, err := c.GetForType(caseType)
+
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	if err != nil {
+		return err
+	}
+
+	var newCases []Case
+
+	for _, currentCase := range cases {
+		if currentCase.Name == caseName {
+			continue
+		}
+
+		newCases = append(newCases, currentCase)
+	}
+
+	enc := gob.NewEncoder(&buffer)
+	err = enc.Encode(newCases)
+
+	if err != nil {
+		return err
+	}
+
+	data := buffer.Bytes()
+	c.api.KVSet("cases."+caseType, data)
+
+	fmt.Printf("%+v", data)
+
+	return nil
+}
+
 func (c *CaseManager) GetForType(caseType string) ([]Case, error) {
 	var buffer bytes.Buffer
 	var cases []Case

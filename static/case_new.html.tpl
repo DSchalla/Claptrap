@@ -33,7 +33,7 @@
             <div class="row">
                 <div class="col-md-12 mb-3">
                     <label for="firstName">Case Name</label>
-                    <input type="text" class="form-control" id="casename" placeholder="" value="" required>
+                    <input type="text" class="form-control" id="casename" name="casename" placeholder="" value="" required>
                     <div class="invalid-feedback">
                         Valid name is required.
                     </div>

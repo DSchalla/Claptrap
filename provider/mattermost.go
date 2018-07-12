@@ -81,6 +81,12 @@ func (m *Mattermost) NormalizeUserJoinEvent(post *model.Post) Event {
 func (m *Mattermost) addEventMetadata(event Event) Event {
 	var user, actor *model.User
 	var channel *model.Channel
+
+	channel, _ = m.api.GetChannel(event.ChannelID)
+	event.ChannelID = channel.Id
+	event.ChannelName = channel.Name
+	event.ChannelType = channel.Type
+
 	if event.UserName == "" && event.UserID != "" {
 		user, _ = m.api.GetUser(event.UserID)
 	} else {
@@ -93,8 +99,8 @@ func (m *Mattermost) addEventMetadata(event Event) Event {
 		event.UserRole = user.Roles
 	}
 
-	//member, _ := m.api.GetTeamMember(m.team.Id, user.Id)
-	//event.UserRole += " " + member.Roles
+	member, _ := m.api.GetTeamMember(channel.TeamId, user.Id)
+	event.UserRole += " " + member.Roles
 
 	if event.ActorName == "" && event.ActorID != "" {
 		actor, _ = m.api.GetUser(event.ActorID)
@@ -107,20 +113,8 @@ func (m *Mattermost) addEventMetadata(event Event) Event {
 		event.ActorName = actor.Username
 		event.ActorRole = actor.Roles
 
-		//member, _ = m.api.GetTeamMember(m.team.Id, actor.Id)
-		//event.ActorRole += " " + member.Roles
-	}
-
-	if event.ChannelID != "" {
-		channel, _ = m.api.GetChannel(event.ChannelID)
-	} else {
-		//channel, _ = m.api.GetChannelByName(event.ChannelName, m.team.Id)
-	}
-
-	if channel != nil {
-		event.ChannelID = channel.Id
-		event.ChannelName = channel.Name
-		event.ChannelType = channel.Type
+		member, _ = m.api.GetTeamMember(channel.TeamId, actor.Id)
+		event.ActorRole += " " + member.Roles
 	}
 
 	return event

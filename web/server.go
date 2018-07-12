@@ -93,6 +93,7 @@ func (s *Server) AuditHandler(w http.ResponseWriter, req *http.Request) {
 
 func (s *Server) CasesHandler(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
+	typeName := vars["type"]
 	t := s.getTemplate()
 	t, err := t.ParseFiles(path.Join(s.getBasePath(), "static/cases.html.tpl"))
 
@@ -112,21 +113,21 @@ func (s *Server) CasesHandler(w http.ResponseWriter, req *http.Request) {
 			Name string
 			NumConditions int
 			NumResponses int
+			Type string
 		}{
 			engineCase.Name,
 			len(engineCase.Conditions),
 			len(engineCase.Responses),
+			typeName,
 		})
 	}
-
-
 
 	data := struct {
 		Cases []interface{}
 		Type string
 	}{
 		templateCases,
-		strings.Title(vars["type"]),
+		strings.Title(strings.Replace(typeName, "_", " ", -1)),
 	}
 
 
@@ -216,6 +217,16 @@ func (s *Server) CaseNewHandlerCreate(w http.ResponseWriter, req *http.Request) 
 	if err != nil {
 		mlog.Error(fmt.Sprintf("[CLAPTRAP][WEB][CaseNewHandlerCreate] Error Adding Case: %s", err))
 	}
+
+	http.Redirect(w, req, "/plugins/com.dschalla.claptrap/cases/" + req.FormValue("type"), 302)
+}
+
+func (s *Server) CasesDeleteHandler(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	typeName := vars["type"]
+	caseName := vars["name"]
+	s.caseManager.Delete(typeName, caseName)
+	http.Redirect(w, req, "/plugins/com.dschalla.claptrap/cases/" + typeName, 302)
 }
 
 func (s *Server) execTemplate(t *template.Template, w http.ResponseWriter, context interface{}) error{

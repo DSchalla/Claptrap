@@ -83,6 +83,55 @@ func (b *BotServer) HandleMessage(post *model.Post, intercept bool) (*model.Post
 	return post, ""
 }
 
+func (b *BotServer) HandleTeamJoin(teamMember *model.TeamMember, actor *model.User, intercept bool) (*model.TeamMember, string) {
+	mlog.Debug(fmt.Sprintf("Team Join received: %+v\n", teamMember))
+
+	b.evaluationMutex.RLock()
+	defer b.evaluationMutex.RUnlock()
+
+	event := b.prov.NormalizeTeamJoinEvent(teamMember, actor)
+	res := b.ruleEngine.EvaluateEvent(event, intercept)
+
+	if res.Intercept {
+		return nil, RejectMessage
+	}
+
+	return teamMember, ""
+}
+
+func (b *BotServer) HandleChannelJoin(channelMember *model.ChannelMember, actor *model.User, intercept bool) (*model.ChannelMember, string) {
+	mlog.Debug(fmt.Sprintf("Channel Join received: %+v\n", channelMember))
+
+	b.evaluationMutex.RLock()
+	defer b.evaluationMutex.RUnlock()
+
+	event := b.prov.NormalizeChannelJoinEvent(channelMember, actor)
+	res := b.ruleEngine.EvaluateEvent(event, intercept)
+
+	if res.Intercept {
+		return nil, RejectMessage
+	}
+
+	return channelMember, ""
+}
+
+
+func (b *BotServer) HandleChannelLeave(channelMember *model.ChannelMember, actor *model.User, intercept bool) (*model.ChannelMember, string) {
+	mlog.Debug(fmt.Sprintf("Channel Leave received: %+v\n", channelMember))
+
+	b.evaluationMutex.RLock()
+	defer b.evaluationMutex.RUnlock()
+
+	event := b.prov.NormalizeChannelLeaveEvent(channelMember, actor)
+	res := b.ruleEngine.EvaluateEvent(event, intercept)
+
+	if res.Intercept {
+		return nil, RejectMessage
+	}
+
+	return channelMember, ""
+}
+
 func (b *BotServer) ReloadConfig(config Config) {
 
 	b.evaluationMutex.Lock()

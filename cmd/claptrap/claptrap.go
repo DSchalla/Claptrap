@@ -51,7 +51,7 @@ func (c *ClaptrapPlugin) OnConfigurationChange() error {
 	return c.reloadConfig()
 }
 
-func (c *ClaptrapPlugin) MessageWillBePosted(post *model.Post) (*model.Post, string) {
+func (c *ClaptrapPlugin) MessageWillBePosted(context *plugin.Context, post *model.Post) (*model.Post, string) {
 	if post.Props["from_claptrap"] != nil && post.Props["from_claptrap"].(bool) == true {
 		return post, ""
 	}
@@ -61,7 +61,7 @@ func (c *ClaptrapPlugin) MessageWillBePosted(post *model.Post) (*model.Post, str
 	return post, rejectMessage
 }
 
-func (c *ClaptrapPlugin) MessageHasBeenPosted(post *model.Post) {
+func (c *ClaptrapPlugin) MessageHasBeenPosted(context *plugin.Context, post *model.Post) {
 	if post.Props["from_claptrap"] != nil && post.Props["from_claptrap"].(bool) == true {
 		return
 	}
@@ -70,7 +70,25 @@ func (c *ClaptrapPlugin) MessageHasBeenPosted(post *model.Post) {
 	mlog.Debug("[CLAPTRAP-PLUGIN] MessageHasBeenPosted Hook End")
 }
 
-func (c *ClaptrapPlugin) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (c *ClaptrapPlugin) UserHasJoinedTeam(context *plugin.Context, teamMember *model.TeamMember, actor *model.User) {
+	mlog.Debug("[CLAPTRAP-PLUGIN] UserHasJoinedTeam Hook Start")
+	c.claptrap.HandleTeamJoin(teamMember, actor, false)
+	mlog.Debug("[CLAPTRAP-PLUGIN] UserHasJoinedTeam Hook End")
+}
+
+func (c *ClaptrapPlugin) UserHasJoinedChannel(context *plugin.Context, channelMember *model.ChannelMember, actor *model.User) {
+	mlog.Debug("[CLAPTRAP-PLUGIN] UserHasJoinedChannel Hook Start")
+	c.claptrap.HandleChannelJoin(channelMember, actor, false)
+	mlog.Debug("[CLAPTRAP-PLUGIN] UserHasJoinedChannel Hook End")
+}
+
+func (c *ClaptrapPlugin) UserHasLeftChannel(context *plugin.Context, channelMember *model.ChannelMember, actor *model.User) {
+	mlog.Debug("[CLAPTRAP-PLUGIN] UserHasLeftChannel Hook Start")
+	c.claptrap.HandleChannelLeave(channelMember, actor, false)
+	mlog.Debug("[CLAPTRAP-PLUGIN] UserHasLeftChannel Hook End")
+}
+
+func (c *ClaptrapPlugin) ServeHTTP(context *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	mlog.Debug("[CLAPTRAP-PLUGIN] ServeHTTP Hook Start")
 	c.claptrap.HandleHTTP(w, r)
 	mlog.Debug("[CLAPTRAP-PLUGIN] ServeHTTP Hook End")
