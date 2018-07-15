@@ -164,3 +164,19 @@ func (d DeleteMessageResponse) Execute(p provider.Provider, event provider.Event
 	log.Printf("[+] Executing 'DeleteMessage' | Channel: %s (%s) | PostID: %s\n", event.ChannelName, event.ChannelID, event.PostID)
 	return p.DeleteMessage(event)
 }
+
+func NewInterceptEventResponse() (*InterceptEventResponse, error) {
+	return &InterceptEventResponse{}, nil
+}
+
+type InterceptEventResponse struct {
+}
+
+func (i InterceptEventResponse) GetName() string{
+	return "InterceptEventResponse"
+}
+
+func (i InterceptEventResponse) Execute(p provider.Provider, event provider.Event) bool {
+	log.Printf("[+] Executing 'InteceptEvent' | Channel: %s (%s) | PostID: %s\n", event.ChannelName, event.ChannelID, event.PostID)
+	return true
+}

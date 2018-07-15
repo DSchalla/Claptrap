@@ -7,6 +7,7 @@ $(document).ready(function(){
 
     $("#condition-select-add").on("click", function() {
         let type = condition_dropdown.val();
+        console.log("Condition Select Pressed: " + type);
         let template = $("#condition-template-" + type).clone();
         template.removeAttr("id");
 
@@ -20,6 +21,7 @@ $(document).ready(function(){
 
     $("#response-select-add").on("click", function() {
         let type = response_dropdown.val();
+        console.log("Response Select Pressed: " + type);
         let template = $("#response-template-" + type).clone();
         template.removeAttr("id");
 

@@ -3,7 +3,6 @@ package rules
 import (
 	"fmt"
 	"github.com/DSchalla/Claptrap/provider"
-	"log"
 	"strings"
 	"sync"
 	"errors"
@@ -12,6 +11,8 @@ import (
 	"bytes"
 	"encoding/gob"
 	"github.com/mattermost/mattermost-server/mlog"
+	"net/http"
+	"strconv"
 )
 
 type Case struct {
@@ -24,6 +25,29 @@ type Case struct {
 	DeleteTime        time.Time
 }
 
+type RawCase struct {
+	Name              string
+	ConditionMatching string
+	Conditions        []RawCondition
+	Responses         []RawResponse
+}
+
+type RawCondition struct {
+	Id        int
+	CondType  string
+	Condition string
+	Likeness  int
+	Parameter string
+}
+
+type RawResponse struct {
+	Id      int
+	Action  string
+	User    string
+	Channel string
+	Message string
+}
+
 var ValidTypes = []string{"message", "channel_join"}
 
 func NewCaseManager(api plugin.API) *CaseManager {
@@ -31,14 +55,23 @@ func NewCaseManager(api plugin.API) *CaseManager {
 	cm.mutex = &sync.RWMutex{}
 	cm.api = api
 
+	gob.Register(ChannelEqualsCondition{})
+	gob.Register(ChannelIsTypeCondition{})
 	gob.Register(TextContainsCondition{})
 	gob.Register(TextEqualsCondition{})
 	gob.Register(TextStartsWithCondition{})
 	gob.Register(TextMatchesCondition{})
+	gob.Register(UserEqualsCondition{})
 	gob.Register(UserIsRoleCondition{})
+	gob.Register(RandomCondition{})
+
 	gob.Register(MessageUserResponse{})
 	gob.Register(MessageChannelResponse{})
+	gob.Register(MessageEphemeralResponse{})
+	gob.Register(KickUserResponse{})
+	gob.Register(InviteUserResponse{})
 	gob.Register(DeleteMessageResponse{})
+	gob.Register(InterceptEventResponse{})
 
 	return cm
 }
@@ -124,6 +157,10 @@ func (c *CaseManager) Delete(caseType, caseName string) error {
 	return nil
 }
 
+func (c *CaseManager) Exists(caseType, caseName string) bool {
+	return false
+}
+
 func (c *CaseManager) GetForType(caseType string) ([]Case, error) {
 	var buffer bytes.Buffer
 	var cases []Case
@@ -153,38 +190,54 @@ func (c *CaseManager) GetForType(caseType string) ([]Case, error) {
 	return cases, nil
 }
 
+func (c *CaseManager) GetCase(caseType, caseName string) (Case, error) {
+	cases, err := c.GetForType(caseType)
+
+	if err != nil {
+		return Case{}, err
+	}
+
+	for _, storedCase := range cases {
+		if storedCase.Name == caseName {
+			return storedCase, nil
+		}
+	}
+
+	return Case{}, errors.New("case not found")
+}
+
 func (c *CaseManager) GetCaseTypes() map[string]string {
 	return map[string]string{
-		"message": "Message",
-		"channel_join": "Channel Join (incl. Invite)",
+		"message":       "Message",
+		"channel_join":  "Channel Join (incl. Invite)",
 		"channel_leave": "Channel Leave (incl. Kick)",
-		"team_join": "Team Join",
+		"team_join":     "Team Join",
 	}
 }
 
-func (c *CaseManager) GetConditionOptions() map[string]string{
+func (c *CaseManager) GetConditionOptions() map[string]string {
 	return map[string]string{
-	 "message_contains": "Message Contains",
-	 "message_equals": "Message Equals",
-	 "message_starts_with": "Message Starts With",
-	 "message_matches": "Message Matches",
-	 "user_equals": "User Equals",
-	 "user_is_role": "User Is Role",
-	 "channel_equals": "Channel Equals",
-	 "channel_is_type": "Channel Is Type",
-	 "random": "Random",
+		"message_contains":    "Message Contains",
+		"message_equals":      "Message Equals",
+		"message_starts_with": "Message Starts With",
+		"message_matches":     "Message Matches",
+		"user_equals":         "User Equals",
+		"user_is_role":        "User Is Role",
+		"channel_equals":      "Channel Equals",
+		"channel_is_type":     "Channel Is Type",
+		"random":              "Random",
 	}
 }
 
-func (c *CaseManager) GetResponseOptions() map[string]string{
+func (c *CaseManager) GetResponseOptions() map[string]string {
 	return map[string]string{
-	 "message_channel": "Message Channel",
-	 "message_user": "Message User",
-	 "message_ephemeral": "Message Ephemeral",
-	 "invite_user": "Invite User",
-	 "kick_user": "Kick User",
-	 "delete_message": "Delete Message",
-	 "intercept": "Intercept Event",
+		"message_channel":   "Message Channel",
+		"message_user":      "Message User",
+		"message_ephemeral": "Message Ephemeral",
+		"invite_user":       "Invite User",
+		"kick_user":         "Kick User",
+		"delete_message":    "Delete Message",
+		"intercept":         "Intercept Event",
 	}
 }
 
@@ -201,33 +254,89 @@ func (c *CaseManager) validType(caseType string) bool {
 	return valid
 }
 
-type RawCase struct {
-	Name              string         `json:"name"`
-	ConditionMatching string         `json:"condition_matching"`
-	Intercept bool         `json:"intercept"`
-	Conditions        []RawCondition `json:"conditions"`
-	Responses         []RawResponse  `json:"responses"`
+func (c *CaseManager) CreateCaseFromHTTPReq(req *http.Request) (Case, string, error) {
+	req.ParseForm()
+
+	caseType := req.FormValue("type")
+	validType := false
+
+	for _, existingType := range c.GetCaseTypes() {
+		if caseType == existingType {
+			validType = true
+			break
+		}
+	}
+
+	if validType {
+		return Case{}, "", errors.New("invalid Case Type")
+	}
+
+	if req.FormValue("casename") == "" && c.Exists(caseType, req.FormValue("casename")) {
+		return Case{}, "", errors.New("case with that name already exists or empty name passed")
+	}
+
+	rawCase := RawCase{
+		Name:              req.FormValue("casename"),
+		ConditionMatching: req.FormValue("condition_matching"),
+	}
+
+	for i := 0; i < 10; i++ {
+		prefix := fmt.Sprintf("conditions[%d]", i)
+		conditionType := req.FormValue(prefix + "[type]")
+
+		if conditionType == "" {
+			break
+		}
+
+		conditionValue := req.FormValue(prefix + "[condition]")
+		parameterValue := req.FormValue(prefix + "[parameter]")
+		likenessValue, err := strconv.Atoi(req.FormValue(prefix + "[likeness]"))
+
+		if err != nil {
+			likenessValue = 0
+		}
+
+		rawCond := RawCondition{
+			Id:        i,
+			CondType:  conditionType,
+			Condition: conditionValue,
+			Likeness:  likenessValue,
+			Parameter: parameterValue,
+		}
+		rawCase.Conditions = append(rawCase.Conditions, rawCond)
+	}
+
+	for i := 0; i < 10; i++ {
+		prefix := fmt.Sprintf("responses[%d]", i)
+		responseType := req.FormValue(prefix + "[type]")
+
+		if responseType == "" {
+			break
+		}
+
+		messageValue := req.FormValue(prefix + "[message]")
+		userValue := req.FormValue(prefix + "[user]")
+		channelValue := req.FormValue(prefix + "[channel]")
+
+		rawResp := RawResponse{
+			Id:      i,
+			Action:  responseType,
+			Message: messageValue,
+			User:    userValue,
+			Channel: channelValue,
+		}
+		rawCase.Responses = append(rawCase.Responses, rawResp)
+	}
+
+	realCase := c.CreateCaseFromRawCase(rawCase)
+
+	return realCase, caseType, nil
 }
 
-type RawCondition struct {
-	CondType  string `json:"type"`
-	Condition string `json:"condition"`
-	Likeness  int    `json:"likeness"`
-	Parameter string `json:"parameter"`
-}
-
-type RawResponse struct {
-	Action  string `json:"action"`
-	User    string `json:"user"`
-	Channel string `json:"channel"`
-	Message string `json:"Message"`
-}
-
-func CreateCaseFromRawCase(r RawCase) Case {
+func (c *CaseManager) CreateCaseFromRawCase(r RawCase) Case {
 	parsedCase := Case{}
 	parsedCase.Name = r.Name
 	parsedCase.ConditionMatching = strings.ToLower(r.ConditionMatching)
-	parsedCase.Intercept = r.Intercept
 
 	if parsedCase.ConditionMatching == "" {
 		parsedCase.ConditionMatching = "and"
@@ -237,22 +346,30 @@ func CreateCaseFromRawCase(r RawCase) Case {
 	parsedResponses := make([]Response, len(r.Responses))
 
 	for i, condition := range r.Conditions {
-		parsedCondition, err := createConditionFromRawCondition(condition)
+		parsedCondition, err := c.createConditionFromRawCondition(condition)
 
 		if err == nil {
 			parsedConditions[i] = parsedCondition
 		} else {
-			log.Printf("[!] Error creating condition %s of case %s: %s -> Skipped\n", condition.CondType, parsedCase.Name, err)
+			mlog.Warn("[!] Error creating condition %s of case %s: %s -> Skipped\n",
+				mlog.String("ConditionType", condition.CondType),
+				mlog.String("CaseName", parsedCase.Name),
+				mlog.Err(err),
+			)
 		}
 	}
 
 	for i, response := range r.Responses {
-		parsedResponse, err := createResponseFromRawResponse(response)
+		parsedResponse, err := c.createResponseFromRawResponse(response)
 
 		if err == nil {
 			parsedResponses[i] = parsedResponse
 		} else {
-			log.Printf("[!] Error creating response %s of case %s: %s -> Skipped\n", response.Action, parsedCase.Name, err)
+			mlog.Warn("[!] Error creating response %s of case %s: %s -> Skipped\n",
+				mlog.String("Action", response.Action),
+				mlog.String("CaseName", parsedCase.Name),
+				mlog.Err(err),
+			)
 		}
 	}
 
@@ -262,7 +379,94 @@ func CreateCaseFromRawCase(r RawCase) Case {
 	return parsedCase
 }
 
-func createConditionFromRawCondition(rawCond RawCondition) (Condition, error) {
+func (c *CaseManager) CreateRawCaseFromCase(realCase Case) (*RawCase, error) {
+	rawCase := &RawCase{
+		Name: realCase.Name,
+		ConditionMatching: realCase.ConditionMatching,
+	}
+
+	parsedConditions := make([]RawCondition, len(realCase.Conditions))
+	parsedResponses := make([]RawResponse, len(realCase.Responses))
+
+	for i, cond := range realCase.Conditions {
+		rawCond := RawCondition{}
+		rawCond.Id = i
+
+		switch t := cond.(type) {
+		case ChannelIsTypeCondition:
+			rawCond.CondType = "channel_is_type"
+			rawCond.Condition = t.Condition
+		case ChannelEqualsCondition:
+			rawCond.CondType = "channel_equals"
+			rawCond.Condition = t.Condition
+		case TextEqualsCondition:
+			rawCond.CondType = "message_equals"
+			rawCond.Condition = t.Condition
+		case TextMatchesCondition:
+			rawCond.CondType = "message_matches"
+			rawCond.Condition = t.expression
+		case TextStartsWithCondition:
+			rawCond.CondType = "message_starts_with"
+			rawCond.Condition = t.Condition
+		case TextContainsCondition:
+			rawCond.CondType = "message_contains"
+			rawCond.Condition = t.Condition
+		case UserIsRoleCondition:
+			rawCond.CondType = "user_is_role"
+			rawCond.Condition = t.Condition
+			rawCond.Parameter = t.Parameter
+		case UserEqualsCondition:
+			rawCond.CondType = "user_equals"
+			rawCond.Condition = t.Condition
+			rawCond.Parameter = t.Parameter
+		case RandomCondition:
+			rawCond.CondType = "channel_equals"
+			rawCond.Likeness = t.Likeness
+		}
+
+		parsedConditions = append(parsedConditions, rawCond)
+	}
+
+	for i, resp := range realCase.Responses {
+		rawResp := RawResponse{}
+		rawResp.Id = i
+
+		switch t := resp.(type) {
+		case MessageChannelResponse:
+			rawResp.Action = "message_channel"
+			rawResp.Message = t.Message
+			rawResp.Channel = t.ChannelID
+		case MessageUserResponse:
+			rawResp.Action = "message_user"
+			rawResp.Message = t.Message
+			rawResp.User = t.UserID
+		case MessageEphemeralResponse:
+			rawResp.Action = "message_ephemeral"
+			rawResp.Message = t.Message
+		case InviteUserResponse:
+			rawResp.Action = "invite_user"
+			rawResp.User = t.UserID
+			rawResp.Channel = t.ChannelID
+		case KickUserResponse:
+			rawResp.Action = "kick_user"
+			rawResp.User = t.UserID
+			rawResp.Channel = t.ChannelID
+		case InterceptEventResponse:
+			rawResp.Action = "intercept_event"
+		case DeleteMessageResponse:
+			rawResp.Action = "delete_message"
+		}
+
+		parsedResponses = append(parsedResponses, rawResp)
+	}
+
+	rawCase.Conditions = parsedConditions
+	rawCase.Responses = parsedResponses
+
+	return rawCase, nil
+}
+
+func (c *CaseManager) createConditionFromRawCondition(rawCond RawCondition) (Condition, error) {
 	var realCondition Condition
 	var err error
 	switch condType := rawCond.CondType; condType {
@@ -291,7 +495,7 @@ func createConditionFromRawCondition(rawCond RawCondition) (Condition, error) {
 	return realCondition, err
 }
 
-func createResponseFromRawResponse(rawResp RawResponse) (Response, error) {
+func (c *CaseManager) createResponseFromRawResponse(rawResp RawResponse) (Response, error) {
 	var realResponse Response
 	var err error
 	switch respType := rawResp.Action; respType {
@@ -307,6 +511,8 @@ func createResponseFromRawResponse(rawResp RawResponse) (Response, error) {
 		realResponse, err = NewKickUserResponse(rawResp.Channel, rawResp.User)
 	case "delete_message":
 		realResponse, err = NewDeleteMessageResponse()
+	case "intercept_event":
+		realResponse, err = NewInterceptEventResponse()
 	default:
 		err = fmt.Errorf("Invalid Response Type: %s\n", respType)
 	}

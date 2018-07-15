@@ -175,6 +175,19 @@ func (s *Server) CaseNewHandler(w http.ResponseWriter, req *http.Request) {
 		mlog.Error(fmt.Sprintf("[CLAPTRAP][WEB][AuditHandler] Error parsing index template: %s", err))
 	}
 
+	type dummyStruct struct{
+		Id string
+		Condition string
+		Likeness string
+		Parameter string
+		Message string
+		Channel string
+		User string
+	}
+
+	dummyStructInstance := dummyStruct{}
+	dummyStructInstance.Id = "{INDEX}"
+
 	context := PageContext{
 		URL: req.URL.Path,
 		Data: struct {
@@ -182,13 +195,15 @@ func (s *Server) CaseNewHandler(w http.ResponseWriter, req *http.Request) {
 			ConditionOptions map[string]string
 			ResponseOptions map[string]string
 			Case *rules.RawCase
-			DummyStruct struct{Id, Condition string}
+			CaseType string
+			DummyStruct dummyStruct
 		}{
 			s.caseManager.GetCaseTypes(),
 			s.caseManager.GetConditionOptions(),
 			s.caseManager.GetResponseOptions(),
-			nil,
-			struct{Id, Condition string}{"{INDEX}", ""},
+			&rules.RawCase{},
+			"message",
+			dummyStructInstance,
 		},
 	}
 
@@ -196,70 +211,80 @@ func (s *Server) CaseNewHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *Server) CaseNewHandlerCreate(w http.ResponseWriter, req *http.Request) {
-	req.ParseForm()
-
-	intercept := false
-
-	if req.FormValue("intercept") == "Yes"{
-		intercept = true
-	}
-
-	rawCase := rules.RawCase{
-		Name: req.FormValue("casename"),
-		Intercept: intercept,
-		ConditionMatching: req.FormValue("condition_matching"),
-	}
-
-	for i:= 0; i < 10; i++ {
-		prefix := fmt.Sprintf("conditions[%d]", i)
-		conditionType := req.FormValue(prefix+"[type]")
-
-		if conditionType == "" {
-			break
-		}
-
-		conditionValue := ""
-
-		if conditionType == "message_contains" || conditionType == "message_starts_with" {
-			conditionValue = req.FormValue(prefix+"[condition]")
-		}
-
-		rawCond := rules.RawCondition{
-			CondType: conditionType,
-			Condition: conditionValue,
-		}
-		rawCase.Conditions = append(rawCase.Conditions, rawCond)
-	}
-
-	for i:= 0; i < 10; i++ {
-		prefix := fmt.Sprintf("responses[%d]", i)
-		responseType := req.FormValue(prefix+"[type]")
-
-		if responseType == "" {
-			break
-		}
-
-		responseMessage := ""
-
-		if responseType == "message_channel" {
-			responseMessage = req.FormValue(prefix+"[message]")
-		}
-
-		rawResp := rules.RawResponse{
-			Action: responseType,
-			Message: responseMessage,
-		}
-		rawCase.Responses = append(rawCase.Responses, rawResp)
-	}
-
-	newCase := rules.CreateCaseFromRawCase(rawCase)
-	err := s.caseManager.Add(req.FormValue("type"), newCase)
+	newCase, caseType, err := s.caseManager.CreateCaseFromHTTPReq(req)
 
 	if err != nil {
-		mlog.Error(fmt.Sprintf("[CLAPTRAP][WEB][CaseNewHandlerCreate] Error Adding Case: %s", err))
+		mlog.Error("[CLAPTRAP][WEB][CaseNewHandlerCreate] Error Parsing Case from HTTP: %s", mlog.Err(err))
+	} else {
+		err = s.caseManager.Add(caseType, newCase)
+
+		if err != nil {
+			mlog.Error(fmt.Sprintf("[CLAPTRAP][WEB][CaseNewHandlerCreate] Error Adding Case: %s", err))
+		}
+
 	}
 
 	http.Redirect(w, req, "/plugins/com.dschalla.claptrap/cases/" + req.FormValue("type"), 302)
+}
+
+
+func (s *Server) CasesEditHandler(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	typeName := vars["type"]
+	caseName := vars["name"]
+
+	t := s.getTemplate()
+	t, err := t.ParseFiles(path.Join(s.getBasePath(), "static/case_form.html.tpl"))
+
+	if err != nil {
+		mlog.Error("[CLAPTRAP][WEB][AuditHandler] Error parsing index template", mlog.Err(err))
+	}
+
+	realCase, err := s.caseManager.GetCase(typeName, caseName)
+
+	if err != nil {
+		mlog.Error("[CLAPTRAP][WEB][AuditHandler] Error getting case", mlog.Err(err))
+	}
+
+	rawCase, err := s.caseManager.CreateRawCaseFromCase(realCase)
+
+	if err != nil {
+		mlog.Error("[CLAPTRAP][WEB][AuditHandler] Error getting raw case", mlog.Err(err))
+	}
+
+	type dummyStruct struct{
+		Id string
+		Condition string
+		Likeness string
+		Parameter string
+		Message string
+		Channel string
+		User string
+	}
+
+	dummyStructInstance := dummyStruct{}
+	dummyStructInstance.Id = "{INDEX}"
+
+	context := PageContext{
+		URL: req.URL.Path,
+		Data: struct {
+			CaseTypes map[string]string
+			ConditionOptions map[string]string
+			ResponseOptions map[string]string
+			Case *rules.RawCase
+			CaseType string
+			DummyStruct dummyStruct
+		}{
+			s.caseManager.GetCaseTypes(),
+			s.caseManager.GetConditionOptions(),
+			s.caseManager.GetResponseOptions(),
+			rawCase,
+			typeName,
+			dummyStructInstance,
+		},
+	}
+
+	s.execTemplate(t, w, context)
 }
 
 func (s *Server) CasesDeleteHandler(w http.ResponseWriter, req *http.Request) {

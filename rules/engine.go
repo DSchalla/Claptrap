@@ -46,12 +46,19 @@ func (e *Engine) checkCases(event provider.Event, cases []Case, intercept bool) 
 
 	for _, eventCase := range cases {
 
-		if eventCase.Intercept != intercept {
+		interceptResp := false
+		for _, resp := range eventCase.Responses {
+			if resp.GetName() == "InterceptEventResponse" {
+				interceptResp = true
+			}
+		}
+
+		if !intercept && interceptResp {
 			continue
 		}
 
 		if e.checkConditions(event, eventCase.ConditionMatching, eventCase.Conditions) {
-			e.audit.Add(analysis.CaseTriggerAuditEvent{
+			go e.audit.Add(analysis.CaseTriggerAuditEvent{
 				Username: event.UserName,
 				UserId: event.UserID,
 				CaseId: eventCase.Name,
@@ -103,7 +110,7 @@ func (e *Engine) executeResponse(event provider.Event, eventCase Case) bool {
 
 	if eventCase.ResponseFunc != nil {
 		auditEvent.Action = "CustomFunc"
-		e.audit.Add(auditEvent)
+		go e.audit.Add(auditEvent)
 		return eventCase.ResponseFunc(event, e.provider)
 	}
 
@@ -113,7 +120,7 @@ func (e *Engine) executeResponse(event provider.Event, eventCase Case) bool {
 			continue
 		}
 		auditEvent.Action = response.GetName()
-		e.audit.Add(auditEvent)
+		go e.audit.Add(auditEvent)
 		response.Execute(e.provider, event)
 	}
 

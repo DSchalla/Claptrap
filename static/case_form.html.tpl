@@ -10,7 +10,7 @@
         <h5>Conditions</h5>
         <select id="condition-select-dropdown" name="type" class="form-control">
         {{range $key, $value := .Data.ConditionOptions}}
-            <option value="{{ $key }}"{{if eq $key "message_contains"}}selected{{end}}>{{ $value }}</option>
+            <option value="{{ $key }}" {{if eq $key "message_contains"}}selected{{end}}>{{ $value }}</option>
         {{end}}
         </select>
         <br/>
@@ -31,7 +31,7 @@
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label for="firstName">Case Name</label>
-                    <input type="text" class="form-control" id="casename" name="casename" placeholder="" value=""
+                    <input type="text" class="form-control" id="casename" name="casename" placeholder="" value="{{.Data.Case.Name}}"
                            required>
                     <div class="invalid-feedback">
                         Valid name is required.
@@ -41,15 +41,15 @@
                     <label for="form-type">Type</label>
                     <select id="form-type" name="type" class="form-control">
                     {{range $key, $value := .Data.CaseTypes}}
-                        <option value="{{ $key }}"{{if eq $key "message"}}selected{{end}}>{{ $value }}</option>
+                        <option value="{{ $key }}" {{if eq $.Data.CaseType $key}}selected{{end}}>{{ $value }}</option>
                     {{end}}
                     </select>
                 </div>
                 <div class="form-group col-md-3">
                     <label for="form-type">Condition Matching</label>
                     <select id="form-type" name="type" class="form-control">
-                        <option selected>or</option>
-                        <option>and</option>
+                        <option {{if eq .Data.Case.ConditionMatching "or"}}selected{{end}}>or</option>
+                        <option {{if eq .Data.Case.ConditionMatching "and"}}selected{{end}}>and</option>
                     </select>
                     <small class="text-muted">If set to 'or', a single condition will trigger the responses. Otherwise
                         all conditions have to match.
@@ -59,6 +59,36 @@
             <hr class="mb-4">
             <h4 class="mb-3">Conditions</h4>
             <div id="conditions-container" class="dynamic-container">
+                {{range .Data.Case.Conditions }}
+                {{.CondType}}
+                    {{if eq .CondType "channel_equals"}}
+                    {{ template "condition-channel_equals" .}}
+                    {{end}}
+                    {{if eq .CondType "channel_is_type"}}
+                    {{ template "condition-channel_is_type" .}}
+                    {{end}}
+                    {{if eq .CondType "message_contains"}}
+                    {{ template "condition-message_contains" .}}
+                    {{end}}
+                    {{if eq .CondType "message_equals"}}
+                    {{ template "condition-message_equals" .}}
+                    {{end}}
+                    {{if eq .CondType "message_matches"}}
+                    {{ template "condition-message_matches" .}}
+                    {{end}}
+                    {{if eq .CondType "message_starts_with"}}
+                    {{ template "condition-message_starts_with" .}}
+                    {{end}}
+                    {{if eq .CondType "random"}}
+                    {{ template "condition-random" .}}
+                    {{end}}
+                    {{if eq .CondType "user_equals"}}
+                    {{ template "condition-user_equals" .}}
+                    {{end}}
+                    {{if eq .CondType "user_is_role"}}
+                    {{ template "condition-user_is_role" .}}
+                    {{end}}
+                {{end}}
                 <div class="card conditions-nocondition">
                     <div class="card-body">
                         <h5 class="card-title">No conditions</h5>
@@ -70,6 +100,29 @@
 
             <h4 class="mb-3">Responses</h4>
             <div id="responses-container" class="dynamic-container">
+                {{range .Data.Case.Responses }}
+                    {{ if eq .Action "message_channel"}}
+                    {{ template "response-message_channel" . }}
+                    {{end}}
+                    {{ if eq .Action "message_user"}}
+                    {{ template "response-message_user" . }}
+                    {{end}}
+                    {{ if eq .Action "message_ephemeral"}}
+                    {{ template "response-message_ephemeral" . }}
+                    {{end}}
+                    {{ if eq .Action "delete_message"}}
+                    {{ template "response-delete_message" . }}
+                    {{end}}
+                    {{ if eq .Action "invite_user"}}
+                    {{ template "response-invite_user" . }}
+                    {{end}}
+                    {{ if eq .Action "kick_user"}}
+                    {{ template "response-kick_user" . }}
+                    {{end}}
+                    {{ if eq .Action "message_user"}}
+                    {{ template "response-message_user" . }}
+                    {{end}}
+                {{end}}
                 <div class="card responses-noresponse">
                     <div class="card-body">
                         <h5 class="card-title">No responses</h5>

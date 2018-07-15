@@ -18,6 +18,7 @@
         <td>{{.NumConditions}}</td>
         <td>{{.NumResponses}}</td>
         <td>
+            <a href="/plugins/com.dschalla.claptrap/cases/{{.Type}}/{{.Name}}">Edit</a>
             <form action="/plugins/com.dschalla.claptrap/cases/{{.Type}}/{{.Name}}/delete" method="POST">
                 <button type="submit">Delete</button>
             </form>
