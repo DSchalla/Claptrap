@@ -39,13 +39,6 @@ func (m *Mattermost) AutoJoinAllChannel() error {
 }
 
 func (m *Mattermost) NormalizeMessageEvent(post *model.Post) Event {
-
-	if post.Type == "system_add_to_channel" {
-		return m.NormalizeUserInviteEvent(post)
-	} else if post.Type == "system_join_channel" {
-		return m.NormalizeUserJoinEvent(post)
-	}
-
 	unifiedEvent := Event{}
 	unifiedEvent.Type = "message"
 	unifiedEvent.PostID = post.Id
@@ -57,23 +50,50 @@ func (m *Mattermost) NormalizeMessageEvent(post *model.Post) Event {
 	return unifiedEvent
 }
 
-func (m *Mattermost) NormalizeUserInviteEvent(post *model.Post) Event {
+func (m *Mattermost) NormalizeTeamJoinEvent(teamMember *model.TeamMember, actor *model.User) Event {
 	unifiedEvent := Event{}
-	unifiedEvent.Type = "user_add"
-	unifiedEvent.PostID = post.Id
-	unifiedEvent.ChannelID = post.ChannelId
-	unifiedEvent.UserName = post.Props["addedUsername"].(string)
-	unifiedEvent.ActorName = post.Props["username"].(string)
+	unifiedEvent.Type = "team_join"
+	unifiedEvent.UserID = teamMember.UserId
+	unifiedEvent.TeamID = teamMember.TeamId
+
+	if actor != nil {
+		unifiedEvent.ActorID = actor.Id
+		unifiedEvent.ActorName = actor.Username
+		unifiedEvent.ActorRole = actor.Roles
+	}
+
 	unifiedEvent = m.addEventMetadata(unifiedEvent)
 	return unifiedEvent
 }
 
-func (m *Mattermost) NormalizeUserJoinEvent(post *model.Post) Event {
+func (m *Mattermost) NormalizeChannelJoinEvent(channelMember *model.ChannelMember, actor *model.User) Event {
 	unifiedEvent := Event{}
-	unifiedEvent.Type = "user_add"
-	unifiedEvent.PostID = post.Id
-	unifiedEvent.ChannelID = post.ChannelId
-	unifiedEvent.UserName = post.Props["username"].(string)
+	unifiedEvent.Type = "channel_join"
+	unifiedEvent.UserID = channelMember.UserId
+	unifiedEvent.ChannelID = channelMember.ChannelId
+
+	if actor != nil {
+		unifiedEvent.ActorID = actor.Id
+		unifiedEvent.ActorName = actor.Username
+		unifiedEvent.ActorRole = actor.Roles
+	}
+
+	unifiedEvent = m.addEventMetadata(unifiedEvent)
+	return unifiedEvent
+}
+
+func (m *Mattermost) NormalizeChannelLeaveEvent(channelMember *model.ChannelMember, actor *model.User) Event {
+	unifiedEvent := Event{}
+	unifiedEvent.Type = "channel_leave"
+	unifiedEvent.UserID = channelMember.UserId
+	unifiedEvent.ChannelID = channelMember.ChannelId
+
+	if actor != nil {
+		unifiedEvent.ActorID = actor.Id
+		unifiedEvent.ActorName = actor.Username
+		unifiedEvent.ActorRole = actor.Roles
+	}
+
 	unifiedEvent = m.addEventMetadata(unifiedEvent)
 	return unifiedEvent
 }
@@ -82,10 +102,24 @@ func (m *Mattermost) addEventMetadata(event Event) Event {
 	var user, actor *model.User
 	var channel *model.Channel
 
-	channel, _ = m.api.GetChannel(event.ChannelID)
-	event.ChannelID = channel.Id
-	event.ChannelName = channel.Name
-	event.ChannelType = channel.Type
+	if event.ChannelID != "" {
+		channel, _ = m.api.GetChannel(event.ChannelID)
+		event.ChannelID = channel.Id
+		event.ChannelName = channel.Name
+		event.ChannelType = channel.Type
+	}
+
+	if event.TeamID == "" && channel != nil{
+		event.TeamID = channel.TeamId
+	}
+
+	if event.TeamName == "" && event.TeamID != "" {
+		team, _ := m.api.GetTeam(event.TeamID)
+
+		if team != nil {
+			event.TeamName = team.Name
+		}
+	}
 
 	if event.UserName == "" && event.UserID != "" {
 		user, _ = m.api.GetUser(event.UserID)
@@ -99,20 +133,24 @@ func (m *Mattermost) addEventMetadata(event Event) Event {
 		event.UserRole = user.Roles
 	}
 
-	member, _ := m.api.GetTeamMember(channel.TeamId, user.Id)
+	member, _ := m.api.GetTeamMember(event.TeamID, user.Id)
 	event.UserRole += " " + member.Roles
 
-	if event.ActorName == "" && event.ActorID != "" {
-		actor, _ = m.api.GetUser(event.ActorID)
-	} else if event.ActorName != "" && event.ActorID == "" {
-		actor, _ = m.api.GetUserByUsername(event.ActorName)
+	if event.ActorName == "" || event.ActorID == "" || event.ActorRole == "" {
+		if event.ActorName == "" && event.ActorID != "" {
+			actor, _ = m.api.GetUser(event.ActorID)
+		} else if event.ActorName != "" && event.ActorID == "" {
+			actor, _ = m.api.GetUserByUsername(event.ActorName)
+		}
+
+		if actor != nil {
+			event.ActorID = actor.Id
+			event.ActorName = actor.Username
+			event.ActorRole = actor.Roles
+		}
 	}
 
 	if actor != nil {
-		event.ActorID = actor.Id
-		event.ActorName = actor.Username
-		event.ActorRole = actor.Roles
-
 		member, _ = m.api.GetTeamMember(channel.TeamId, actor.Id)
 		event.ActorRole += " " + member.Roles
 	}

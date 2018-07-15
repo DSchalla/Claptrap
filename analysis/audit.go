@@ -184,6 +184,7 @@ type ActionExecutedAuditEvent struct {
 	UserId      string
 	ChannelName string
 	ChannelId   string
+	TeamId		string
 	CaseId      string
 	Timestamp   time.Time
 }
@@ -193,11 +194,11 @@ func (c ActionExecutedAuditEvent) String() string {
 	log := fmt.Sprintf("Executed action '%s'", c.Action)
 
 	if c.ChannelId != "" {
-		log += fmt.Sprintf(" against Channel '%s' (%s)", c.ChannelName, c.ChannelId)
+		log += fmt.Sprintf(" triggered in Channel '%s' (%s) (Team %s)", c.ChannelName, c.ChannelId, c.TeamId)
 	}
 
 	if c.UserId != "" {
-		log += fmt.Sprintf(" with User '%s' (%s)", c.Username, c.UserId)
+		log += fmt.Sprintf(" by User '%s' (%s)", c.Username, c.UserId)
 	}
 
 	log += fmt.Sprintf(" as part of case '%s' at %s", c.CaseId, c.Timestamp.Format(TimeFormat))

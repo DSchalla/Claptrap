@@ -22,6 +22,7 @@ func NewServer(api plugin.API, caseManager *rules.CaseManager, audit *analysis.A
 	s.caseManager = caseManager
 	s.audit = audit
 	s.router = newRouter(s)
+	s.baseTemplate = s.createBaseTemplate()
 	return s
 }
 
@@ -30,6 +31,7 @@ type Server struct {
 	caseManager *rules.CaseManager
 	audit       *analysis.AuditTrail
 	router      *router
+	baseTemplate *template.Template
 }
 
 type PageContext struct {
@@ -38,7 +40,33 @@ type PageContext struct {
 }
 
 func (s *Server) HandleHTTP(w http.ResponseWriter, req *http.Request) {
-	mlog.Debug(fmt.Sprintf("User requested resource: %s", req.URL.Path))
+	authorized := false
+	username := ""
+	userId := req.Header.Get("Mattermost-User-Id")
+
+	if userId != "" {
+		user, _ := s.api.GetUser(userId)
+		username = user.Username
+		authorized = strings.Contains(user.Roles, "admin")
+	}
+
+	if !authorized {
+		ip := req.RemoteAddr
+
+		if forwarded := req.Header.Get("X-Forwarded-For"); forwarded != "" {
+			ip = forwarded
+		}
+
+		mlog.Warn("Unauthorized user tried to access admin panel",
+			mlog.String("UserId", userId),
+			mlog.String("IP", ip),
+			mlog.String("UserAgent", req.UserAgent()),
+		)
+		http.Redirect(w, req, "/", 302)
+		return
+	}
+
+	mlog.Debug("User requested resource", mlog.String("path", req.URL.Path), mlog.String("user", username))
 	s.router.HandleHTTP(w, req)
 }
 
@@ -141,7 +169,7 @@ func (s *Server) CasesHandler(w http.ResponseWriter, req *http.Request) {
 
 func (s *Server) CaseNewHandler(w http.ResponseWriter, req *http.Request) {
 	t := s.getTemplate()
-	t, err := t.ParseFiles(path.Join(s.getBasePath(), "static/case_new.html.tpl"))
+	t, err := t.ParseFiles(path.Join(s.getBasePath(), "static/case_form.html.tpl"))
 
 	if err != nil {
 		mlog.Error(fmt.Sprintf("[CLAPTRAP][WEB][AuditHandler] Error parsing index template: %s", err))
@@ -149,6 +177,19 @@ func (s *Server) CaseNewHandler(w http.ResponseWriter, req *http.Request) {
 
 	context := PageContext{
 		URL: req.URL.Path,
+		Data: struct {
+			CaseTypes map[string]string
+			ConditionOptions map[string]string
+			ResponseOptions map[string]string
+			Case *rules.RawCase
+			DummyStruct struct{Id, Condition string}
+		}{
+			s.caseManager.GetCaseTypes(),
+			s.caseManager.GetConditionOptions(),
+			s.caseManager.GetResponseOptions(),
+			nil,
+			struct{Id, Condition string}{"{INDEX}", ""},
+		},
 	}
 
 	s.execTemplate(t, w, context)
@@ -241,11 +282,34 @@ func (s *Server) execTemplate(t *template.Template, w http.ResponseWriter, conte
 }
 
 func (s *Server) getTemplate() *template.Template {
+	t, err := s.baseTemplate.Clone()
+
+	if err != nil {
+		mlog.Error("[CLAPTRAP][WEB][getTemplate] Error Cloning Template", mlog.Err(err))
+		return nil
+	}
+
+	return t
+}
+
+func (s *Server) createBaseTemplate() *template.Template {
 	t := template.New("")
 	t, err := t.ParseFiles(path.Join(s.getBasePath(), "static/partials/base.html.tpl"), path.Join(s.getBasePath(), "static/partials/sidebar.html.tpl"))
 
 	if err != nil {
-		mlog.Error(fmt.Sprintf("[CLAPTRAP][WEB][getTemplate] Error parsing base templates: %s", err))
+		mlog.Error(fmt.Sprintf("[CLAPTRAP][WEB][createBaseTemplate] Error parsing base templates: %s", err))
+	}
+
+	t, err = t.ParseGlob(path.Join(s.getBasePath(), "static/partials/conditions/*.html.tpl"))
+
+	if err != nil {
+		mlog.Error(fmt.Sprintf("[CLAPTRAP][WEB][createBaseTemplate] Error parsing base templates: %s", err))
+	}
+
+	t, err = t.ParseGlob(path.Join(s.getBasePath(), "static/partials/responses/*.html.tpl"))
+
+	if err != nil {
+		mlog.Error(fmt.Sprintf("[CLAPTRAP][WEB][createBaseTemplate] Error parsing base templates: %s", err))
 	}
 
 	return t

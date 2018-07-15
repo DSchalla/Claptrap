@@ -7,8 +7,9 @@ type Provider interface {
 
 	// Normalization
 	NormalizeMessageEvent(post *model.Post) Event
-	NormalizeUserInviteEvent(post *model.Post) Event
-	NormalizeUserJoinEvent(post *model.Post) Event
+	NormalizeTeamJoinEvent(teamMember *model.TeamMember, actor *model.User) Event
+	NormalizeChannelJoinEvent(channelMember *model.ChannelMember, actor *model.User) Event
+	NormalizeChannelLeaveEvent(channelMember *model.ChannelMember, actor *model.User) Event
 
 	// Get Information
 	GetEmailByUsername(username string) string

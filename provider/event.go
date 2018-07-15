@@ -12,6 +12,8 @@ type Event struct {
 	ChannelID   string
 	ChannelName string
 	ChannelType string
+	TeamID      string
+	TeamName 	string
 	Text        string
 	Timestamp   int64
 }

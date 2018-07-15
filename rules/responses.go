@@ -6,6 +6,7 @@ import (
 )
 
 type Response interface {
+	GetName() string
 	Execute(p provider.Provider, event provider.Event) bool
 }
 
@@ -18,13 +19,17 @@ type MessageChannelResponse struct {
 	Message   string
 }
 
-func (k MessageChannelResponse) Execute(p provider.Provider, event provider.Event) bool {
-	message := p.ReplaceMessagePlaceholders(event, k.Message)
+func (m MessageChannelResponse) GetName() string{
+	return "MessageChannelResponse"
+}
+
+func (m MessageChannelResponse) Execute(p provider.Provider, event provider.Event) bool {
+	message := p.ReplaceMessagePlaceholders(event, m.Message)
 	channelID := ""
-	if len(k.ChannelID) == 0 {
+	if len(m.ChannelID) == 0 {
 		channelID = event.ChannelID
 	} else {
-		channelID = k.ChannelID
+		channelID = m.ChannelID
 	}
 
 	log.Printf("[+] Executing 'MessageChannelResponse' | ChannelID: %s \n", channelID)
@@ -40,15 +45,19 @@ type MessageUserResponse struct {
 	Message string
 }
 
-func (k MessageUserResponse) Execute(p provider.Provider, event provider.Event) bool {
+func (m MessageUserResponse) GetName() string{
+	return "MessageUserResponse"
+}
+
+func (m MessageUserResponse) Execute(p provider.Provider, event provider.Event) bool {
 	userID := ""
 
-	if k.UserID == "" {
+	if m.UserID == "" {
 		userID = event.UserID
 	} else {
-		userID = k.UserID
+		userID = m.UserID
 	}
-	message := p.ReplaceMessagePlaceholders(event, k.Message)
+	message := p.ReplaceMessagePlaceholders(event, m.Message)
 
 	log.Printf("[+] Executing 'MessageUserResponse' | UserID: %s \n", userID)
 
@@ -63,10 +72,14 @@ type MessageEphemeralResponse struct {
 	Message string
 }
 
-func (k MessageEphemeralResponse) Execute(p provider.Provider, event provider.Event) bool {
+func (m MessageEphemeralResponse) GetName() string{
+	return "MessageEphemeralResponse"
+}
+
+func (m MessageEphemeralResponse) Execute(p provider.Provider, event provider.Event) bool {
 
 	userID := event.UserID
-	message := p.ReplaceMessagePlaceholders(event, k.Message)
+	message := p.ReplaceMessagePlaceholders(event, m.Message)
 
 	log.Printf("[+] Executing 'MessageEphemeralResponse' | UserID: %s \n", userID)
 
@@ -82,18 +95,22 @@ type InviteUserResponse struct {
 	UserID    string
 }
 
-func (k InviteUserResponse) Execute(p provider.Provider, event provider.Event) bool {
+func (i InviteUserResponse) GetName() string{
+	return "InviteUserResponse"
+}
+
+func (i InviteUserResponse) Execute(p provider.Provider, event provider.Event) bool {
 
 	userID := ""
 
-	if k.UserID == "" {
+	if i.UserID == "" {
 		userID = event.UserID
 	} else {
-		userID = k.UserID
+		userID = i.UserID
 	}
 
-	log.Printf("[+] Executing 'InviteUserResponse' | ChannelID: %s | UserID: %s\n", k.ChannelID, userID)
-	return p.InviteUser(userID, k.ChannelID)
+	log.Printf("[+] Executing 'InviteUserResponse' | ChannelID: %s | UserID: %s\n", i.ChannelID, userID)
+	return p.InviteUser(userID, i.ChannelID)
 }
 
 func NewKickUserResponse(channelID, userID string) (*KickUserResponse, error) {
@@ -103,6 +120,10 @@ func NewKickUserResponse(channelID, userID string) (*KickUserResponse, error) {
 type KickUserResponse struct {
 	ChannelID string
 	UserID    string
+}
+
+func (k KickUserResponse) GetName() string{
+	return "KickUserResponse"
 }
 
 func (k KickUserResponse) Execute(p provider.Provider, event provider.Event) bool {
@@ -133,6 +154,10 @@ func NewDeleteMessageResponse() (*DeleteMessageResponse, error) {
 }
 
 type DeleteMessageResponse struct {
+}
+
+func (d DeleteMessageResponse) GetName() string{
+	return "DeleteMessageResponse"
 }
 
 func (d DeleteMessageResponse) Execute(p provider.Provider, event provider.Event) bool {

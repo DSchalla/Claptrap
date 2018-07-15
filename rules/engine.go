@@ -4,6 +4,7 @@ import (
 	"github.com/DSchalla/Claptrap/provider"
 	"log"
 		"github.com/DSchalla/Claptrap/analysis"
+	"time"
 )
 
 var caseTypes = []string{"Message", "user_add", "user_remove"}
@@ -50,8 +51,12 @@ func (e *Engine) checkCases(event provider.Event, cases []Case, intercept bool) 
 		}
 
 		if e.checkConditions(event, eventCase.ConditionMatching, eventCase.Conditions) {
-			log.Printf(
-				"[+] Case '%s' matched", eventCase.Name)
+			e.audit.Add(analysis.CaseTriggerAuditEvent{
+				Username: event.UserName,
+				UserId: event.UserID,
+				CaseId: eventCase.Name,
+				Timestamp: time.Now(),
+			})
 			e.executeResponse(event, eventCase)
 
 			res.Hit = true
@@ -86,7 +91,19 @@ func (e *Engine) checkConditions(event provider.Event, matching string, conditio
 
 func (e *Engine) executeResponse(event provider.Event, eventCase Case) bool {
 
+	auditEvent := analysis.ActionExecutedAuditEvent{
+		ChannelId: event.ChannelID,
+		ChannelName: event.ChannelName,
+		TeamId: event.TeamID,
+		UserId: event.UserID,
+		Username: event.UserName,
+		CaseId: eventCase.Name,
+		Timestamp: time.Now(),
+	}
+
 	if eventCase.ResponseFunc != nil {
+		auditEvent.Action = "CustomFunc"
+		e.audit.Add(auditEvent)
 		return eventCase.ResponseFunc(event, e.provider)
 	}
 
@@ -95,7 +112,8 @@ func (e *Engine) executeResponse(event provider.Event, eventCase Case) bool {
 		if response == nil {
 			continue
 		}
-
+		auditEvent.Action = response.GetName()
+		e.audit.Add(auditEvent)
 		response.Execute(e.provider, event)
 	}
 

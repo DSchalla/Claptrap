@@ -153,6 +153,41 @@ func (c *CaseManager) GetForType(caseType string) ([]Case, error) {
 	return cases, nil
 }
 
+func (c *CaseManager) GetCaseTypes() map[string]string {
+	return map[string]string{
+		"message": "Message",
+		"channel_join": "Channel Join (incl. Invite)",
+		"channel_leave": "Channel Leave (incl. Kick)",
+		"team_join": "Team Join",
+	}
+}
+
+func (c *CaseManager) GetConditionOptions() map[string]string{
+	return map[string]string{
+	 "message_contains": "Message Contains",
+	 "message_equals": "Message Equals",
+	 "message_starts_with": "Message Starts With",
+	 "message_matches": "Message Matches",
+	 "user_equals": "User Equals",
+	 "user_is_role": "User Is Role",
+	 "channel_equals": "Channel Equals",
+	 "channel_is_type": "Channel Is Type",
+	 "random": "Random",
+	}
+}
+
+func (c *CaseManager) GetResponseOptions() map[string]string{
+	return map[string]string{
+	 "message_channel": "Message Channel",
+	 "message_user": "Message User",
+	 "message_ephemeral": "Message Ephemeral",
+	 "invite_user": "Invite User",
+	 "kick_user": "Kick User",
+	 "delete_message": "Delete Message",
+	 "intercept": "Intercept Event",
+	}
+}
+
 func (c *CaseManager) validType(caseType string) bool {
 	valid := false
 
