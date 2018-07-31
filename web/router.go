@@ -29,6 +29,7 @@ func (r *router) setRoutes(s *Server) {
 	r.router.HandleFunc("/case_new", s.CaseNewHandlerCreate).Methods("POST")
 	r.router.HandleFunc("/cases/{type}", s.CasesHandler).Methods("GET")
 	r.router.HandleFunc("/cases/{type}/{name}", s.CasesEditHandler).Methods("GET")
+	r.router.HandleFunc("/cases/{type}/{name}", s.CasesEditHandlerSave).Methods("POST")
 	r.router.HandleFunc("/cases/{type}/{name}/delete", s.CasesDeleteHandler).Methods("POST")
 }
 

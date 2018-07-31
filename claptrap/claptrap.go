@@ -148,6 +148,6 @@ func (b *BotServer) AddCase(caseType string, newCase rules.Case) {
 	mlog.Debug(fmt.Sprintf("[+] Dynamic Case '%s' with type '%s' loaded\n", newCase.Name, caseType))
 }
 
-func (b *BotServer) HandleHTTP(w http.ResponseWriter, r *http.Request) {
-	b.webServer.HandleHTTP(w, r)
+func (b *BotServer) HandleHTTP(context *plugin.Context, w http.ResponseWriter, r *http.Request) {
+	b.webServer.HandleHTTP(context, w, r)
 }

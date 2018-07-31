@@ -255,8 +255,6 @@ func (c *CaseManager) validType(caseType string) bool {
 }
 
 func (c *CaseManager) CreateCaseFromHTTPReq(req *http.Request) (Case, string, error) {
-	req.ParseForm()
-
 	caseType := req.FormValue("type")
 	validType := false
 

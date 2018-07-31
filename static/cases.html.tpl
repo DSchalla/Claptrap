@@ -21,6 +21,7 @@
             <a href="/plugins/com.dschalla.claptrap/cases/{{.Type}}/{{.Name}}">Edit</a>
             <form action="/plugins/com.dschalla.claptrap/cases/{{.Type}}/{{.Name}}/delete" method="POST">
                 <button type="submit">Delete</button>
+                <input type="hidden" name="csrf" value="{{ $.CSRF }}">
             </form>
         </td>
     </tr>

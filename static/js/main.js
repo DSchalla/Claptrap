@@ -54,4 +54,12 @@ $(document).ready(function(){
             });
         });
     }
+
+    $("#conditions-container > div").each(function(){
+        $(this).removeAttr("id");
+    });
+
+    $("#responses-container > div").each(function(){
+        $(this).removeAttr("id");
+    });
 });

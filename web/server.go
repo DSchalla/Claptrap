@@ -14,6 +14,7 @@ import (
 	"time"
 	"github.com/gorilla/mux"
 	"strings"
+	"context"
 )
 
 func NewServer(api plugin.API, caseManager *rules.CaseManager, audit *analysis.AuditTrail) *Server {
@@ -37,9 +38,10 @@ type Server struct {
 type PageContext struct {
 	URL string
 	Data interface{}
+	CSRF string
 }
 
-func (s *Server) HandleHTTP(w http.ResponseWriter, req *http.Request) {
+func (s *Server) HandleHTTP(pluginContext *plugin.Context, w http.ResponseWriter, req *http.Request) {
 	authorized := false
 	username := ""
 	userId := req.Header.Get("Mattermost-User-Id")
@@ -66,8 +68,23 @@ func (s *Server) HandleHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	mlog.Debug("User requested resource", mlog.String("path", req.URL.Path), mlog.String("user", username))
-	s.router.HandleHTTP(w, req)
+	sid := pluginContext.GetSessionId()
+	csrf, err := s.api.GetCSRF(sid)
+
+	if err != nil {
+		mlog.Error("Error fetching CSRF Token", mlog.String("message", err.Message))
+	}
+
+	mlog.Debug("User requested resource",
+		mlog.String("path", req.URL.Path),
+		mlog.String("user", username),
+		mlog.String("csrf", csrf),
+		mlog.String("sid", sid),
+	)
+
+	ctx := context.WithValue(req.Context(), "SessionID", pluginContext.GetSessionId())
+	ctx = context.WithValue(ctx, "CSRF", csrf)
+	s.router.HandleHTTP(w, req.WithContext(ctx))
 }
 
 func (s *Server) IndexHandler(w http.ResponseWriter, req *http.Request) {
@@ -111,12 +128,12 @@ func (s *Server) AuditHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 
-	context := PageContext{
+	ctx := PageContext{
 		URL: req.URL.Path,
 		Data: data,
 	}
 
-	s.execTemplate(t, w, context)
+	s.execTemplate(t, w, ctx)
 }
 
 func (s *Server) CasesHandler(w http.ResponseWriter, req *http.Request) {
@@ -159,12 +176,13 @@ func (s *Server) CasesHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 
-	context := PageContext{
+	ctx := PageContext{
 		URL: req.URL.Path,
 		Data: data,
+		CSRF: s.getCSRF(req),
 	}
 
-	s.execTemplate(t, w, context)
+	s.execTemplate(t, w, ctx)
 }
 
 func (s *Server) CaseNewHandler(w http.ResponseWriter, req *http.Request) {
@@ -188,7 +206,7 @@ func (s *Server) CaseNewHandler(w http.ResponseWriter, req *http.Request) {
 	dummyStructInstance := dummyStruct{}
 	dummyStructInstance.Id = "{INDEX}"
 
-	context := PageContext{
+	ctx := PageContext{
 		URL: req.URL.Path,
 		Data: struct {
 			CaseTypes map[string]string
@@ -205,16 +223,19 @@ func (s *Server) CaseNewHandler(w http.ResponseWriter, req *http.Request) {
 			"message",
 			dummyStructInstance,
 		},
+		CSRF: s.getCSRF(req),
 	}
 
-	s.execTemplate(t, w, context)
+	s.execTemplate(t, w, ctx)
 }
 
 func (s *Server) CaseNewHandlerCreate(w http.ResponseWriter, req *http.Request) {
+	req.ParseForm()
 	newCase, caseType, err := s.caseManager.CreateCaseFromHTTPReq(req)
 
 	if err != nil {
-		mlog.Error("[CLAPTRAP][WEB][CaseNewHandlerCreate] Error Parsing Case from HTTP: %s", mlog.Err(err))
+		mlog.Error("[CLAPTRAP][WEB][CaseNewHandlerCreate] Error Parsing Case from HTTP", mlog.Err(err))
+		mlog.Error(err.Error())
 	} else {
 		err = s.caseManager.Add(caseType, newCase)
 
@@ -265,7 +286,7 @@ func (s *Server) CasesEditHandler(w http.ResponseWriter, req *http.Request) {
 	dummyStructInstance := dummyStruct{}
 	dummyStructInstance.Id = "{INDEX}"
 
-	context := PageContext{
+	ctx := PageContext{
 		URL: req.URL.Path,
 		Data: struct {
 			CaseTypes map[string]string
@@ -282,9 +303,38 @@ func (s *Server) CasesEditHandler(w http.ResponseWriter, req *http.Request) {
 			typeName,
 			dummyStructInstance,
 		},
+		CSRF: s.getCSRF(req),
 	}
 
-	s.execTemplate(t, w, context)
+	s.execTemplate(t, w, ctx)
+}
+
+func (s *Server) CasesEditHandlerSave(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	typeName := vars["type"]
+	caseName := vars["name"]
+	err := s.caseManager.Delete(typeName, caseName)
+	if err != nil {
+		mlog.Error("[CLAPTRAP][WEB][CasesEditHandlerSave] Error Parsing Case from HTTP", mlog.Err(err))
+		mlog.Error(err.Error())
+	}
+
+	req.ParseForm()
+	newCase, caseType, err := s.caseManager.CreateCaseFromHTTPReq(req)
+
+	if err != nil {
+		mlog.Error("[CLAPTRAP][WEB][CasesEditHandlerSave] Error Parsing Case from HTTP", mlog.Err(err))
+		mlog.Error(err.Error())
+	} else {
+		err = s.caseManager.Add(caseType, newCase)
+
+		if err != nil {
+			mlog.Error(fmt.Sprintf("[CLAPTRAP][WEB][CasesEditHandlerSave] Error Adding Case: %s", err))
+		}
+
+	}
+
+	http.Redirect(w, req, "/plugins/com.dschalla.claptrap/cases/" + typeName, 302)
 }
 
 func (s *Server) CasesDeleteHandler(w http.ResponseWriter, req *http.Request) {
@@ -343,4 +393,14 @@ func (s *Server) createBaseTemplate() *template.Template {
 func (s *Server) getBasePath() string{
 	exe, _ := os.Executable()
 	return filepath.Dir(exe)
+}
+
+func (s *Server) getSID(r *http.Request) string{
+	ctx := r.Context()
+	return ctx.Value("SessionID").(string)
+}
+
+func (s *Server) getCSRF(r *http.Request) string{
+	ctx := r.Context()
+	return ctx.Value("CSRF").(string)
 }

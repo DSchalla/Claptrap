@@ -90,7 +90,7 @@ func (c *ClaptrapPlugin) UserHasLeftChannel(context *plugin.Context, channelMemb
 
 func (c *ClaptrapPlugin) ServeHTTP(context *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	mlog.Debug("[CLAPTRAP-PLUGIN] ServeHTTP Hook Start")
-	c.claptrap.HandleHTTP(w, r)
+	c.claptrap.HandleHTTP(context, w, r)
 	mlog.Debug("[CLAPTRAP-PLUGIN] ServeHTTP Hook End")
 }
 

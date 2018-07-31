@@ -132,6 +132,7 @@
             </div>
             <hr class="mb-4">
             <button class="btn btn-primary btn-lg btn-block" type="submit">Save</button>
+            <input type="hidden" name="csrf" value="{{ $.CSRF }}">
         </form>
     </div>
 </div>
